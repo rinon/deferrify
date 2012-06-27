@@ -348,6 +348,12 @@
     scope.addVariable(new Variable("require"), true);
     scope.addVariable(new Variable("load"), true);
 
+    if (o.jsInput) {
+      for (var i in jsFrontend.externs) {
+        scope.addVariable(new Variable(jsFrontend.externs[i]), true);
+      }
+    }
+
     logger.push(this);
     scanList(this.body, o);
     logger.pop();
@@ -423,8 +429,12 @@
   VariableDeclaration.prototype.scan = function (o) {
     logger.push(this);
 
-    check(this.kind === "let" || this.kind === "const" || this.kind === "extern",
-          "Only block scoped variable declarations are allowed, use the " + quote("let") + " keyword instead.");
+    if (!o.jsInput) {
+      check(this.kind === "let" || this.kind === "const" || this.kind === "extern",
+            "Only block scoped variable declarations are allowed, use the " + quote("let") + " keyword instead.");
+    }
+
+    scanList(this.declarations, extend(o, { declkind: this.kind }));
 
     /* Only emit vars, we mangle names ourselves. */
     if (this.kind === "let") {

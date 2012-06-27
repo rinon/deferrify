@@ -117,6 +117,7 @@
       ["E",           "only-parse",   false, "Only parse"],
       ["A",           "emit-ast",     false, "Do not generate JS, emit AST"],
       ["P",           "pretty-print", false, "Pretty-print AST instead of emitting JSON (with -A)"],
+      ["j",           "js-input",     false, "Input should be treated as JS, not LLJS"],
       ["b",           "bare",         false, "Do not wrap in a module"],
       ["l",           "load-instead", false, "Emit load('memory') instead of require('memory')"],
       ["W",           "warn",         true,  "Print warnings (enabled by default)"],
