@@ -108,6 +108,53 @@
 
 
   /**
+   * Global objects
+   */
+
+  var globals = ['Array',
+                 'ArrayBuffer',
+                 'Boolean',
+                 'Date',
+                 'decodeURI',
+                 'decodeURIComponent',
+                 'encodeURI',
+                 'encodeURIComponent',
+                 'Error',
+                 'eval',
+                 'EvalError',
+                 'Float32Array',
+                 'Float64Array',
+                 'Function',
+                 'Infinity',
+                 'Int16Array',
+                 'Int32Array',
+                 'Int8Array',
+                 'isFinite',
+                 'isNaN',
+                 'Iterator',
+                 'JSON',
+                 'Math',
+                 'NaN',
+                 'Number',
+                 'Object',
+                 'parseFloat',
+                 'parseInt',
+                 'RangeError',
+                 'ReferenceError',
+                 'RegExp',
+                 'StopIteration',
+                 'String',
+                 'SyntaxError',
+                 'TypeError',
+                 'Uint16Array',
+                 'Uint32Array',
+                 'Uint8Array',
+                 'Uint8ClampedArray',
+                 'undefined',
+                 'uneval',
+                 'URIError'];
+
+  /**
    * Pass 1: resolve type synonyms and do some type sanity checking
    */
 
@@ -440,8 +487,6 @@
     if (this.kind === "let") {
       this.kind = "var";
     }
-
-    scanList(this.declarations, extend(o, { declkind: this.kind }));
 
     logger.pop();
     return this;
