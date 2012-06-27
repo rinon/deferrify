@@ -395,12 +395,6 @@
     scope.addVariable(new Variable("require"), true);
     scope.addVariable(new Variable("load"), true);
 
-    if (o.jsInput) {
-      for (var i in jsFrontend.externs) {
-        scope.addVariable(new Variable(jsFrontend.externs[i]), true);
-      }
-    }
-
     logger.push(this);
     scanList(this.body, o);
     logger.pop();
@@ -707,7 +701,16 @@
       var scope = o.scope;
       var variable = scope.getVariable(this.name);
 
-      check(variable, "unknown identifier " + quote(this.name) + " in scope " + scope);
+      if (!variable && o.jsInput && jsFrontend.externs.indexOf(this.name) !== -1 ) {
+        scope.addVariable(new Variable(this.name), true);
+        variable = scope.getVariable(this.name);
+      }
+      check(variable, "unknown identifier " + quote(this.name) + " in scope " + scope, o.jsInput);
+      if (!variable) {
+        console.trace('unknown id');
+        return;
+      }
+
       check(variable.isStackAllocated ? variable.frame === scope.frame : true,
             "cannot close over stack-allocated variables");
 
