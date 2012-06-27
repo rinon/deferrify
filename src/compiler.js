@@ -1,22 +1,24 @@
 (function (exports) {
-  var util, T, S, Types;
+  var util, T, S, Types, jsFrontend;
   if (typeof process !== "undefined") {
     util = require("./util.js");
     T = require("./estransform.js");
     S = require("./scope.js");
     Types = require("./types.js");
+    jsFrontend = require("./js_frontend.js");
   } else if (typeof snarf !== "undefined") {
     util = this.util;
     T = estransform;
     load("./types.js");
     Types = this.Types;
     load("./scope.js");
-    S = scope;
+    load("./js_frontend.js");
   } else {
     util = this.util;
     T = estransform;
     S = scope;
     Types = this.Types;
+    jsFrontend = this.jsFrontend;
   }
 
 
@@ -1496,7 +1498,9 @@
 
     logger.info("Pass 1");
     var types = resolveAndLintTypes(node, clone(Types.builtinTypes));
-    var o = { types: types, name: name, logger: _logger, warn: warningOptions(options), memcheck: options.memcheck };
+    var o = { types: types, name: name, logger: _logger, warn: warningOptions(options), jsInput: options['js-input'], memcheck: options.memcheck };
+
+    node.jsRewrite(o);
 
     // Pass 2.
     logger.info("Pass 2");
