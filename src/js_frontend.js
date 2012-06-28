@@ -101,9 +101,13 @@
     "performance"
   ];
 
+  requireGlobals = ["define", "module"];
+
+  nodeGlobals = ["global"];
+
   var externs = (function () {
     var externs = Object.create(null);
-    var extArr = globals.concat(windowGlobals);
+    var extArr = globals.concat(windowGlobals, requireGlobals, nodeGlobals);
     extArr.forEach(function (x) {
       externs[x] = true;
     });
@@ -112,8 +116,10 @@
 
 
   function passOverList(list, passFunction, o) {
-    list.forEach(function (node) {
-      node[passFunction](o);
+    return list.map(function (node) {
+      return node[passFunction](o);
+    }).filter(function (node) {
+      return node !== null;
     });
   }
 
@@ -142,7 +148,7 @@
 
     o.variables = Object.create(null);
 
-    passOverList(this.body, 'jsRewrite', o);
+    this.body = passOverList(this.body, 'jsRewrite', o);
 
     var variableDeclaration, variableDeclarators = [];
     for (var name in o.variables) {
@@ -151,7 +157,7 @@
 
     if (variableDeclarators.length > 0) {
       variableDeclaration = new VariableDeclaration("let", variableDeclarators);
-      this.elements.unshift(variableDeclaration);
+      this.body.unshift(variableDeclaration);
     }
 
     logger.pop();
@@ -253,6 +259,7 @@
     for (var name in o.externs) {
       variableDeclarators.push(new VariableDeclarator(o.externs[name], null));
       scope.addVariable(new Variable(name), true);
+      logger.info("Adding extern " + name);
     }
 
     if (variableDeclarators.length > 0) {
@@ -305,8 +312,11 @@
       }
     }
   }
-      
 
-  exports.logger = logger;
+  function initialize(o) {
+    logger = o.logger;
+  }
+
+  exports.initialize = initialize;
 
 }).call(this, typeof exports === "undefined" ? (jsFrontend = {}) : exports);
