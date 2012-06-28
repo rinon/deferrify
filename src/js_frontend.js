@@ -152,7 +152,7 @@
 
     var variableDeclaration, variableDeclarators = [];
     for (var name in o.variables) {
-      variableDeclarators.push(new VariableDeclarator(o.variables[name], null));
+      variableDeclarators.push(new VariableDeclarator(o.variables[name], null, null, null, o.variables[name].loc));
     }
 
     if (variableDeclarators.length > 0) {
@@ -173,9 +173,17 @@
 
     this.body = this.body.jsRewrite(o);
 
-    var variableDeclaration, variableDeclarators = [];
+    var inParams, variableDeclaration, variableDeclarators = [];
     for (var name in o.variables) {
-      variableDeclarators.push(new VariableDeclarator(o.variables[name], null));
+      inParams = false;
+      for (var i = 0, l = this.params.length; i < l; i++) {
+        if (name === this.params[i].name) {
+          inParams = true;
+        }
+      }
+      if (!inParams) {
+        variableDeclarators.push(new VariableDeclarator(o.variables[name], null, null, null, o.variables[name].loc));
+      }
     }
 
     if (variableDeclarators.length > 0) {
