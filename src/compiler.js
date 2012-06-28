@@ -1500,11 +1500,15 @@
     var types = resolveAndLintTypes(node, clone(Types.builtinTypes));
     var o = { types: types, name: name, logger: _logger, warn: warningOptions(options), jsInput: options['js-input'], memcheck: options.memcheck };
 
-    node.jsRewrite(o);
+    if (options['js-input']) {
+      node.jsRewrite(o);
+    }
 
     // Pass 2.
     logger.info("Pass 2");
     node.scan(o);
+
+    node.externPass(o);
 
     // Pass 3.
     logger.info("Pass 3");
