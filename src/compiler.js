@@ -108,53 +108,6 @@
 
 
   /**
-   * Global objects
-   */
-
-  var globals = ['Array',
-                 'ArrayBuffer',
-                 'Boolean',
-                 'Date',
-                 'decodeURI',
-                 'decodeURIComponent',
-                 'encodeURI',
-                 'encodeURIComponent',
-                 'Error',
-                 'eval',
-                 'EvalError',
-                 'Float32Array',
-                 'Float64Array',
-                 'Function',
-                 'Infinity',
-                 'Int16Array',
-                 'Int32Array',
-                 'Int8Array',
-                 'isFinite',
-                 'isNaN',
-                 'Iterator',
-                 'JSON',
-                 'Math',
-                 'NaN',
-                 'Number',
-                 'Object',
-                 'parseFloat',
-                 'parseInt',
-                 'RangeError',
-                 'ReferenceError',
-                 'RegExp',
-                 'StopIteration',
-                 'String',
-                 'SyntaxError',
-                 'TypeError',
-                 'Uint16Array',
-                 'Uint32Array',
-                 'Uint8Array',
-                 'Uint8ClampedArray',
-                 'undefined',
-                 'uneval',
-                 'URIError'];
-
-  /**
    * Pass 1: resolve type synonyms and do some type sanity checking
    */
 
@@ -470,10 +423,8 @@
   VariableDeclaration.prototype.scan = function (o) {
     logger.push(this);
 
-    if (!o.jsInput) {
-      check(this.kind === "let" || this.kind === "const" || this.kind === "extern",
-            "Only block scoped variable declarations are allowed, use the " + quote("let") + " keyword instead.");
-    }
+    check(this.kind === "let" || this.kind === "const" || this.kind === "extern",
+          "Only block scoped variable declarations are allowed, use the " + quote("let") + " keyword instead.");
 
     scanList(this.declarations, extend(o, { declkind: this.kind }));
 
@@ -701,16 +652,7 @@
       var scope = o.scope;
       var variable = scope.getVariable(this.name);
 
-      if (!variable && o.jsInput && jsFrontend.externs.indexOf(this.name) !== -1 ) {
-        scope.addVariable(new Variable(this.name), true);
-        variable = scope.getVariable(this.name);
-      }
-      check(variable, "unknown identifier " + quote(this.name) + " in scope " + scope, o.jsInput);
-      if (!variable) {
-        console.trace('unknown id');
-        return;
-      }
-
+      check(variable, "unknown identifier " + quote(this.name) + " in scope " + scope);
       check(variable.isStackAllocated ? variable.frame === scope.frame : true,
             "cannot close over stack-allocated variables");
 
@@ -1190,7 +1132,7 @@
     if (this === rty || !(rty instanceof PointerType)) {
       if (!force) {
         check(!(rty instanceof PrimitiveType && rty.integral), "conversion from " +
-              quote(Types.tystr(rty, 0)) + " to pointer without cast");
+              quote(Types.tystr(rty, 0)) + " to pointer without cast", true);
       }
       return expr;
     }
