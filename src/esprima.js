@@ -324,31 +324,61 @@
 
   function isKeyword(id) {
     var keyword = false;
-    switch (id.length) {
-    case 2:
-      keyword = (id === 'if') || (id === 'in') || (id === 'do');
-      break;
-    case 3:
-      keyword = (id === 'var') || (id === 'for') || (id === 'new') || (id === 'try');
-      break;
-    case 4:
-      keyword = (id === 'this') || (id === 'else') || (id === 'case') || (id === 'void') || (id === 'with');
-      break;
-    case 5:
-      keyword = (id === 'while') || (id === 'break') || (id === 'catch') || (id === 'throw') || (id === 'union');
-      break;
-    case 6:
-      keyword = (id === 'return') || (id === 'typeof') || (id === 'delete') || (id === 'switch') || (id === 'struct') || (id === 'sizeof') || (id === 'extern');
-      break;
-    case 7:
-      keyword = (id === 'default') || (id === 'finally') || (id === 'typedef');
-      break;
-    case 8:
-      keyword = (id === 'function') || (id === 'continue') || (id === 'debugger');
-      break;
-    case 10:
-      keyword = (id === 'instanceof');
-      break;
+    if (extra.jsInput) {
+      switch (id.length) {
+      case 2:
+        keyword = (id === 'if') || (id === 'in') || (id === 'do');
+        break;
+      case 3:
+        keyword = (id === 'var') || (id === 'for') || (id === 'new') || (id === 'try');
+        break;
+      case 4:
+        keyword = (id === 'this') || (id === 'else') || (id === 'case') || (id === 'void') || (id === 'with');
+        break;
+      case 5:
+        keyword = (id === 'while') || (id === 'break') || (id === 'catch') || (id === 'throw') || (id === 'union');
+        break;
+      case 6:
+        keyword = (id === 'return') || (id === 'typeof') || (id === 'delete') || (id === 'switch');
+        break;
+      case 7:
+        keyword = (id === 'default') || (id === 'finally');
+        break;
+      case 8:
+        keyword = (id === 'function') || (id === 'continue') || (id === 'debugger');
+        break;
+      case 10:
+        keyword = (id === 'instanceof');
+        break;
+      }
+    } else {
+      switch (id.length) {
+      case 2:
+        keyword = (id === 'if') || (id === 'in') || (id === 'do');
+        break;
+      case 3:
+        keyword = (id === 'var') || (id === 'for') || (id === 'new') || (id === 'try');
+        break;
+      case 4:
+        keyword = (id === 'this') || (id === 'else') || (id === 'case') || (id === 'void') || (id === 'with');
+        break;
+      case 5:
+        keyword = (id === 'while') || (id === 'break') || (id === 'catch') || (id === 'throw');
+        break;
+      case 6:
+        keyword = (id === 'return') || (id === 'typeof') || (id === 'delete') || (id === 'switch');
+        keyword = (id === 'return') || (id === 'typeof') || (id === 'delete') || (id === 'switch') || (id === 'struct') || (id === 'sizeof') || (id === 'extern');
+        break;
+      case 7:
+        keyword = (id === 'default') || (id === 'finally') || (id === 'typedef');
+        break;
+      case 8:
+        keyword = (id === 'function') || (id === 'continue') || (id === 'debugger');
+        break;
+      case 10:
+        keyword = (id === 'instanceof');
+        break;
+      }
     }
 
     if (keyword) {
@@ -3900,6 +3930,7 @@
 
     extra = {};
     if (typeof options !== 'undefined') {
+      extra.jsInput = (typeof options.jsInput === 'boolean') && options.jsInput;
       extra.range = (typeof options.range === 'boolean') && options.range;
       extra.loc = (typeof options.loc === 'boolean') && options.loc;
       extra.raw = (typeof options.raw === 'boolean') && options.raw;

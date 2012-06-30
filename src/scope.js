@@ -149,6 +149,10 @@
   Scope.prototype.addVariable = function addVariable(variable, external) {
     assert(variable);
     assert(!variable.frame);
+    if (this.variables[variable.name]) {
+      debugger;
+      return;
+    }
     assert(!this.variables[variable.name], "Scope already has a variable named " + variable.name);
     variable.frame = this.frame;
 
