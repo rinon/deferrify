@@ -146,18 +146,28 @@
     logger.push(this);
     o = extend(o);
 
+    o.functions = Object.create(null);
     o.variables = Object.create(null);
 
     this.body = passOverList(this.body, 'jsRewrite', o);
 
+    var name;
+
     var variableDeclaration, variableDeclarators = [];
-    for (var name in o.variables) {
-      variableDeclarators.push(new VariableDeclarator(o.variables[name], null, null, null, o.variables[name].loc));
+    for (name in o.variables) {
+      // Do not insert a declaration if we know name should be a predefined global
+      if (!externs[name] && !o.functions[name]) {
+        variableDeclarators.push(new VariableDeclarator(o.variables[name], null, null, null, o.variables[name].loc));
+      }
     }
 
     if (variableDeclarators.length > 0) {
       variableDeclaration = new VariableDeclaration("let", variableDeclarators);
       this.body.unshift(variableDeclaration);
+    }
+
+    for (name in o.functions) {
+      this.body.unshift(o.functions[name]);
     }
 
     logger.pop();
@@ -168,35 +178,63 @@
   FunctionDeclaration.prototype.jsRewrite = function (o) {
     logger.push(this);
 
+    var lifted = false;
+    if (this instanceof FunctionDeclaration) {
+      var id = this.id;
+      o.functions[id.name] = this;
+      lifted = true;
+    }
+
     o = extend(o);
+    o.functions = Object.create(null);
     o.variables = Object.create(null);
 
     this.body = this.body.jsRewrite(o);
 
-    var inParams, variableDeclaration, variableDeclarators = [];
-    for (var name in o.variables) {
-      inParams = false;
-      for (var i = 0, l = this.params.length; i < l; i++) {
-        if (name === this.params[i].name) {
-          inParams = true;
+    var name;
+
+    function inParams(name, params) {
+      for (var i = 0, l = params.length; i < l; i++) {
+        if (name === params[i].name) {
+          return true;
         }
       }
-      if (!inParams) {
+      return false;
+    }
+
+    function prepend(newStatement, body) {
+      if (body instanceof BlockStatement) {
+        body.body.unshift(newStatement);
+      } else {
+        body = new BlockStatement([newStatement, this.body]);
+      }
+    }
+
+    var variableDeclaration, variableDeclarators = [];
+    for (name in o.variables) {
+      if (!inParams(name, this.params) && !o.functions[name]) {
         variableDeclarators.push(new VariableDeclarator(o.variables[name], null, null, null, o.variables[name].loc));
       }
     }
 
     if (variableDeclarators.length > 0) {
       variableDeclaration = new VariableDeclaration("let", variableDeclarators);
-      if (this.body instanceof BlockStatement) {
-        this.body.body.unshift(variableDeclaration);
+      prepend(variableDeclaration, this.body);
+    }
+
+    for (name in o.functions) {
+      var funcDecl = o.functions[name];
+      if (inParams(name, this.params)) {
+        var funcExpr = new FunctionExpression(funcDecl.id, funcDecl.params, funcDecl.body, funcDecl.decltype, funcDecl.generator, funcDecl.expression);
+        var funcAssignment = new AssignmentExpression(funcDecl.id, "=", funcExpr);
+        prepend(new ExpressionStatement(funcAssignment, funcDecl.leadingComments, funcDecl.loc), this.body);
       } else {
-        this.body = new BlockStatement([variableDeclaration, this.body]);
+        prepend(funcDecl, this.body);
       }
     }
 
     logger.pop();
-    return this;
+    return lifted ? null : this;
   }
 
   ForStatement.prototype.rewriteNode = function (o) {
@@ -225,6 +263,9 @@
       for (var i = 0; i < this.declarations.length; i++) {
         var id = this.declarations[i].id;
         o.variables[id.name] = id;
+        if (id.name === 'ni') {
+          debugger;
+        }
       }
     }
 
