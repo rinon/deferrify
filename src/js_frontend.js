@@ -19,10 +19,16 @@
   const Frame = S.Frame;
   const getCachedLocal = S.getCachedLocal;
 
+  /**
+   * Import utils
+   */
   const assert = util.assert;
   const quote = util.quote;
   const extend = util.extend;
 
+  /**
+   * Import AST nodes
+   */
   const Node = T.Node;
   const Program = T.Program;
   const FunctionDeclaration = T.FunctionDeclaration;
