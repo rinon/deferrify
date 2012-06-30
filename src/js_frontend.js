@@ -123,22 +123,6 @@
     });
   }
 
-  // function UniqueArray() {
-  //   var arr = new Array();
-  //   arr.prototype.unique = function() {
-  //     var i, hashObj = Object.create(null);
-  //     for (i = 0; i < this.length; i++) {
-  //       hashObj[this[i]] = null;
-  //     }
-  //     i = 0;
-  //     for (var x in hashObj) {
-  //       arr[i++] = x;
-  //     }
-  //     return this.slice(0, i);
-  //   }
-  //   return arr;
-  // }
-
   Node.prototype.jsRewrite = T.makePass("jsRewrite", "rewriteNode");
 
   Program.prototype.jsRewrite = function (o) {
