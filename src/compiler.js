@@ -1517,6 +1517,11 @@
       node.externPass(o);
     }
 
+    // Pass 2.6 - casting unsafe assignments
+    if (options['js-input']) {
+      node.jsCastPass(o);
+    }
+
     // Pass 3.
     logger.info("Pass 3");
     node = node.transform(o);

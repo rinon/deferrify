@@ -4,11 +4,12 @@
     var util = require("./util.js");
     var T = require("./estransform.js");
     var S = require("./scope.js");
+    var Types = require("./types.js");
   } else {
     var util = this.util;
-    var T = estransform;
-    load("./scope.js");
-    var S = scope;
+    var T = this.estransform;
+    var S = this.S;
+    var Types = this.Types;
   }
 
   /**
@@ -25,6 +26,7 @@
   const assert = util.assert;
   const quote = util.quote;
   const extend = util.extend;
+  const cast = util.cast;
 
   /**
    * Import AST nodes
@@ -128,6 +130,11 @@
       return node !== null;
     });
   }
+
+  /**
+   * jsRewrite Pass - Hoist vars and function declarations to start of
+   * frame.
+   */
 
   Node.prototype.jsRewrite = T.makePass("jsRewrite", "rewriteNode");
 
@@ -280,6 +287,55 @@
     return null;
   }
 
+
+  /**
+   * jsCastPass - Cast unsafe assignments explicitly
+   * Note: uses type.assignableFrom() from compiler transform pass
+   */
+
+  Node.prototype.jsCastPass = T.makePass("jsCastPass", "jsCastNode");
+
+  Program.prototype.jsCastPass = function (o) {
+    o = extend(o);
+    o.scope = this.frame;
+    this.body = passOverList(this.body, 'jsCastPass', o);
+    return this;
+  }
+
+  FunctionExpression.prototype.jsCastPass =
+  FunctionDeclaration.prototype.jsCastPass = function (o) {
+    o = extend(o);
+    o.scope = this.frame;
+
+    assert(this.body instanceof BlockStatement);
+    this.body = this.body.jsCastPass(o);
+
+    return this;
+  };
+
+
+  AssignmentExpression.prototype.jsCastNode = function (o) {
+    var scope = o.scope;
+    var leftVar = scope.getVariable(this.left.name);
+    var rightVar = scope.getVariable(this.right.name);
+    if (!leftVar || !rightVar) {
+      return this;
+    }
+
+    var lty = leftVar.type;
+    var rty = rightVar.type;
+
+    if (!lty) {
+      return this;
+    }
+
+    if (!lty.assignableFrom(rty)) {
+      this.right = cast(this.right, lty, true);
+      logger.warn("Possibly unsafe cast from " + quote(Types.tystr(rty, 0)) + " to " + quote(Types.tystr(lty, 0)));
+    }
+    return this;
+  }
+
   /**
    * extern Pass
    */
@@ -291,7 +347,7 @@
     o.externs = Object.create(null);
 
     logger.push(this);
-    passOverList(this.body, 'externPass', o);
+    this.body = passOverList(this.body, 'externPass', o);
     logger.pop();
 
     var variableDeclaration, variableDeclarators = [];
