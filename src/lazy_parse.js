@@ -111,11 +111,10 @@
     var id = o.scope.freshTemp();
     var functionString = escodegen.generate(this, {format: {indent: { style: '', base: 0}}});
     var stubExpr = stub(mangle(id.name));
+    o.functionStrings[id.name] = '(' + functionString + ')';
     if (this instanceof FunctionExpression) {
-      o.functionStrings[id.name] = '(' + functionString + ')';
       return stubExpr;
     } else {
-      o.functionStrings[id.name] = functionString;
       callId = new Identifier(this.id.name + ".call");
       this.body = new BlockStatement([
         new ExpressionStatement(new AssignmentExpression(this.id, "=", stubExpr)),
