@@ -25,6 +25,7 @@
   const VariableDeclaration = T.VariableDeclaration;
   const VariableDeclarator = T.VariableDeclarator;
   const BlockStatement = T.BlockStatement;
+  const ReturnStatement = T.ReturnStatement;
 
   /**
    * Import utilities.
@@ -117,7 +118,7 @@
       o.functionStrings[id.name] = functionString;
       this.body = new BlockStatement([
         new ExpressionStatement(new AssignmentExpression(this.id, "=", stubExpr)),
-        new ExpressionStatement(new CallExpression(this.id, this.params))
+        new ReturnStatement(new CallExpression(this.id, this.params))
       ]);
       return this;
     }
