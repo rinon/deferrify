@@ -116,9 +116,10 @@
       return stubExpr;
     } else {
       o.functionStrings[id.name] = functionString;
+      callId = new Identifier(this.id.name + ".call");
       this.body = new BlockStatement([
         new ExpressionStatement(new AssignmentExpression(this.id, "=", stubExpr)),
-        new ReturnStatement(new CallExpression(this.id, this.params))
+        new ReturnStatement(new CallExpression(callId, [new Identifier("this")].concat(this.params)))
       ]);
       return this;
     }
