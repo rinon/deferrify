@@ -26,11 +26,13 @@
   const VariableDeclarator = T.VariableDeclarator;
   const BlockStatement = T.BlockStatement;
   const ReturnStatement = T.ReturnStatement;
+  const MemberExpression = T.MemberExpression;
 
   /**
    * Import utilities.
    */
   const extend = util.extend;
+  const assert = util.assert;
 
   var logger;
 
@@ -42,15 +44,61 @@
    * Begin rewrite pass
    */
 
-  function stub(strName) {
-    return new CallExpression(
-      new Identifier("eval"),
-      [new Identifier(strName)]
-    );
-  }
+  function stub(id, strName, params) {
+    var tempId = new Identifier("t");
+    return new BlockStatement([
+      new VariableDeclaration(
+        "var", [
+          new VariableDeclarator(
+            tempId,
+            new CallExpression(
+              new Identifier("eval"),
+              [new Identifier(strName)]
+            )
+          )
+        ]
+      ),
+      new ExpressionStatement(
+        new AssignmentExpression(
+          new MemberExpression(
+            tempId,
+            new Identifier("prototype"),
+            false,
+            "."
+          ),
+          "=",
+          new MemberExpression(
+            id,
+            new Identifier("prototype"),
+            false,
+            "."
+          )
+        )
+      ),
+      new ExpressionStatement(
+        new AssignmentExpression(
+          id, "=",
+          tempId
+        )
+      ),
+      new ReturnStatement(
+        new CallExpression(
+          new MemberExpression(
+            tempId,
+            new Identifier("call"),
+            false,
+            "."
+          ),
+          [new Identifier("this")].concat(params)
+        )
+      )
+    ]);
 
-  function mangle(name) {
-    return "_" + name;
+
+    // return new CallExpression(
+    //   new Identifier("eval"),
+    //   [new Identifier(strName)]
+    // );
   }
 
   function passOverList(list, passFunction, o) {
@@ -72,7 +120,7 @@
 
     var strId, strDeclaration;
     for (var name in o.functionStrings) {
-      strId = new Identifier(mangle(name), "variable");
+      strId = new Identifier(name, "variable");
       strDeclaration = new VariableDeclaration(
         "var",
         [new VariableDeclarator(strId, new Literal(o.functionStrings[name]), undefined)]
@@ -100,7 +148,7 @@
 
     var strId, strDeclaration;
     for (var name in childO.functionStrings) {
-      strId = new Identifier(mangle(name), "variable");
+      strId = new Identifier(name, "variable");
       strDeclaration = new VariableDeclaration(
         "var",
         [new VariableDeclarator(strId, new Literal(childO.functionStrings[name]), undefined)]
@@ -108,20 +156,28 @@
       prepend(strDeclaration, this.body);
     }
 
-    var id = o.scope.freshTemp();
-    var functionString = escodegen.generate(this, {format: {indent: { style: '', base: 0}}});
-    var stubExpr = stub(mangle(id.name));
-    o.functionStrings[id.name] = '(' + functionString + ')';
-    if (this instanceof FunctionExpression) {
-      return stubExpr;
+
+    if (this instanceof FunctionDeclaration) {
+      var id = o.scope.freshTemp();
+      var functionString = escodegen.generate(this, {format: {indent: { style: '', base: 0}}});
+      o.functionStrings[id.name] = '(' + functionString + ')';
+      this.body = stub(this.id, id.name, this.params);
+      return this;
     } else {
-      callId = new Identifier(this.id.name + ".call");
-      this.body = new BlockStatement([
-        new ExpressionStatement(new AssignmentExpression(this.id, "=", stubExpr)),
-        new ReturnStatement(new CallExpression(callId, [new Identifier("this")].concat(this.params)))
-      ]);
       return this;
     }
+  }
+
+  AssignmentExpression.prototype.lazyParseNode = function (o) {
+    if (this.right instanceof FunctionExpression) {
+      var id = o.scope.freshTemp();
+      var functionString = escodegen.generate(this.right, {format: {indent: { style: '', base: 0}}});
+      o.functionStrings[id.name] = '(' + functionString + ')';
+
+      this.right.body = stub(this.left, id.name, this.right.params);
+    }
+
+    return this;
   }
 
 }).call(this, typeof exports === "undefined" ? (lazyParse = {}) : exports);
