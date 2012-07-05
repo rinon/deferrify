@@ -4,10 +4,12 @@
     var util = require("./util.js");
     var T = require("./estransform.js");
     var escodegen = require("./escodegen.js");
+    var Types = require("./types.js");
   } else {
     var util = this.util;
     var T = estransform;
     var escodegen = this.escodegen;
+    var Types = this.Types;
   }
 
   /**
@@ -27,6 +29,9 @@
   const BlockStatement = T.BlockStatement;
   const ReturnStatement = T.ReturnStatement;
   const MemberExpression = T.MemberExpression;
+  const IfStatement = T.IfStatement;
+  const BinaryExpression = T.BinaryExpression;
+  const UnaryExpression = T.UnaryExpression;
 
   /**
    * Import utilities.
@@ -40,51 +45,142 @@
     logger = o.logger;
   }
 
+
   /**
    * Begin rewrite pass
    */
 
+  function stubConstructor() {
+    var tempId = new Identifier("t");
+    var strId = new Identifier("s");
+    return new FunctionDeclaration(
+      new Identifier("stub"),
+      [new Identifier("s"), new Identifier("f")],
+      new BlockStatement([
+        new IfStatement(
+          new BinaryExpression(
+            "===",
+            new UnaryExpression(
+              "typeof",
+              strId
+            ),
+            new Literal("string")
+          ),
+          new BlockStatement([
+            new VariableDeclaration(
+              "var", [
+                new VariableDeclarator(
+                  tempId,
+                  new CallExpression(
+                    new Identifier("eval"),
+                    [strId]
+                  )
+                )
+              ]
+            ),
+            new ExpressionStatement(
+              new AssignmentExpression(
+                new MemberExpression(
+                  tempId,
+                  new Identifier("prototype"),
+                  false,
+                  "."
+                ),
+                "=",
+                new MemberExpression(
+                  new Identifier("f"),
+                  new Identifier("prototype"),
+                  false,
+                  "."
+                )
+              )
+            ),
+            new ReturnStatement(
+              tempId
+            )
+          ])
+        ),
+        new ReturnStatement(
+          new Identifier("f")
+        )
+      ])
+    );
+  }
+        
+
   function stub(id, strName, params) {
     var tempId = new Identifier("t");
+    var strId = new Identifier(strName);
     return new BlockStatement([
-      new VariableDeclaration(
-        "var", [
-          new VariableDeclarator(
-            tempId,
-            new CallExpression(
-              new Identifier("eval"),
-              [new Identifier(strName)]
-            )
-          )
-        ]
-      ),
+      // new IfStatement(
+      //   new BinaryExpression(
+      //     "===",
+      //     new UnaryExpression(
+      //       "typeof",
+      //       strId
+      //     ),
+      //     new Literal("string")
+      //   ),
+      //   new BlockStatement([
+      //     new VariableDeclaration(
+      //       "var", [
+      //         new VariableDeclarator(
+      //           tempId,
+      //           new CallExpression(
+      //             new Identifier("eval"),
+      //             [strId]
+      //           )
+      //         )
+      //       ]
+      //     ),
+      //     new ExpressionStatement(
+      //       new AssignmentExpression(
+      //         new MemberExpression(
+      //           tempId,
+      //           new Identifier("prototype"),
+      //           false,
+      //           "."
+      //         ),
+      //         "=",
+      //         new MemberExpression(
+      //           id,
+      //           new Identifier("prototype"),
+      //           false,
+      //           "."
+      //         )
+      //       )
+      //     ),
+      //     new ExpressionStatement(
+      //       new AssignmentExpression(
+      //         id, "=",
+      //         tempId
+      //       )
+      //     ),
+      //     new ExpressionStatement(
+      //       new AssignmentExpression(
+      //         strId, "=", new Identifier("null")
+      //       )
+      //     )
+      //   ])
+      // ),
       new ExpressionStatement(
         new AssignmentExpression(
-          new MemberExpression(
-            tempId,
-            new Identifier("prototype"),
-            false,
-            "."
-          ),
-          "=",
-          new MemberExpression(
-            id,
-            new Identifier("prototype"),
-            false,
-            "."
+          id, "=",
+          new CallExpression(
+            new Identifier("stub"),
+            [strId, id]
           )
         )
       ),
       new ExpressionStatement(
         new AssignmentExpression(
-          id, "=",
-          tempId
+          strId, "=", new Identifier("null")
         )
       ),
       new ReturnStatement(
         new CallExpression(
           new MemberExpression(
-            tempId,
+            id,
             new Identifier("call"),
             false,
             "."
@@ -118,7 +214,7 @@
 
     this.body = passOverList(this.body, 'lazyParsePass', o);
 
-    var strId, strDeclaration;
+    var strId, strDeclaration, addedVars = false;
     for (var name in o.functionStrings) {
       strId = new Identifier(name, "variable");
       strDeclaration = new VariableDeclaration(
@@ -126,7 +222,12 @@
         [new VariableDeclarator(strId, new Literal(o.functionStrings[name]), undefined)]
       );
       this.body.unshift(strDeclaration);
+      addedVars = true;
     }
+    if (addedVars) {
+      this.body.unshift(stubConstructor());
+    }
+
 
     return this;
   };
@@ -146,7 +247,7 @@
     childO.functionStrings = Object.create(null);
     this.body = this.body.lazyParsePass(childO);
 
-    var strId, strDeclaration;
+    var strId, strDeclaration, addedVars = false;
     for (var name in childO.functionStrings) {
       strId = new Identifier(name, "variable");
       strDeclaration = new VariableDeclaration(
@@ -154,14 +255,22 @@
         [new VariableDeclarator(strId, new Literal(childO.functionStrings[name]), undefined)]
       );
       prepend(strDeclaration, this.body);
+      addedVars = true;
+    }
+    if (addedVars) {
+      prepend(stubConstructor(), this.body);
     }
 
 
     if (this instanceof FunctionDeclaration) {
       var id = o.scope.freshTemp();
       var functionString = escodegen.generate(this, {format: {indent: { style: '', base: 0}}});
-      o.functionStrings[id.name] = '(' + functionString + ')';
-      this.body = stub(this.id, id.name, this.params);
+
+      if (functionString.length > o.options["lazy-minimum"]) {
+        //print('compressing function ' + id.name);
+        o.functionStrings[id.name] = '(' + functionString + ')';
+        this.body = stub(this.id, id.name, this.params);
+      }
       return this;
     } else {
       return this;
@@ -172,12 +281,32 @@
     if (this.right instanceof FunctionExpression) {
       var id = o.scope.freshTemp();
       var functionString = escodegen.generate(this.right, {format: {indent: { style: '', base: 0}}});
-      o.functionStrings[id.name] = '(' + functionString + ')';
 
-      this.right.body = stub(this.left, id.name, this.right.params);
+      if (functionString.length > o.options["lazy-minimum"]) {
+        //print('compressing function ' + id.name);
+        o.functionStrings[id.name] = '(' + functionString + ')';
+        this.right.body = stub(this.left, id.name, this.right.params);
+      }
     }
+    // else if (this.right instanceof Identifier) {
+    //   this.right = resolve(this.right, o);
+    // }
 
     return this;
   }
+
+  // CallExpression.prototype.lazyParseNode = function (o) {
+  //   for (var i = 0, l = this.arguments.length; i < l; i++) {
+  //     this.arguments[i] = resolve(this.arguments[i], o);
+  //   }
+  // }
+
+  // function resolve(identifier, o) {
+  //   if (identifier.variable && identifier.variable.type instanceof Types.ArrowType) {
+  //     return new CallExpression(new Identifier("_resolve"), [new Literal(identifier.name)]);
+  //   } else {
+  //     return identifier;
+  //   }
+  // }
 
 }).call(this, typeof exports === "undefined" ? (lazyParse = {}) : exports);

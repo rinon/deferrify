@@ -1531,6 +1531,11 @@
     logger.info("Pass 4");
     node = node.lower(o);
 
+    if (options['lazy-minimum'] !== false) {
+      o.options['lazy-minimum'] = 0;
+      node.lazyParsePass(o);
+    }
+
     return T.flatten(createModule(node, name, options.bare, options["load-instead"], options.memcheck));
   }
 

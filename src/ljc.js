@@ -63,6 +63,7 @@
       ["A",           "emit-ast",     false, "Do not generate JS, emit AST"],
       ["P",           "pretty-print", false, "Pretty-print AST instead of emitting JSON (with -A)"],
       ["j",           "js-input",     false, "Input should be treated as JS, not LLJS"],
+      ["z",           "lazy-minimum", false, "Enable lazy function parsing with minimum length"],
       ["b",           "bare",         false, "Do not wrap in a module"],
       ["l",           "load-instead", false, "Emit load('memory') instead of require('memory')"],
       ["W",           "warn",         true,  "Print warnings (enabled by default)"],
@@ -130,6 +131,7 @@
         break;
       }
     }
+    options.warn = false;
 
     if(options.nowarn) {
       options.warn = false;
