@@ -263,6 +263,14 @@
 
 
     if (this instanceof FunctionDeclaration) {
+      if (this.id instanceof Identifier && this.params) {
+        for (var i = 0, l = this.params.length; i < l; i++) {
+          var param = this.params[i];
+          if (param instanceof Identifier && this.id.name === param.name) {
+            return this;
+          }
+        }
+      }
       var id = o.scope.freshTemp();
       var functionString = escodegen.generate(this, {format: {indent: { style: '', base: 0}}});
 
@@ -283,6 +291,14 @@
       var functionString = escodegen.generate(this.right, {format: {indent: { style: '', base: 0}}});
 
       if (functionString.length > o.options["lazy-minimum"]) {
+        if (this.left instanceof Identifier && this.params) {
+          for (var i = 0, l = this.params.length; i < l; i++) {
+            var param = this.params[i];
+            if (param instanceof Identifier && this.left.name === param.name) {
+              return this;
+            }
+          }
+        }
         //print('compressing function ' + id.name);
         o.functionStrings[id.name] = '(' + functionString + ')';
         this.right.body = stub(this.left, id.name, this.right.params);

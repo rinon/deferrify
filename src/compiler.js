@@ -1532,7 +1532,7 @@
     node = node.lower(o);
 
     if (options['lazy-minimum'] !== false) {
-      o.options['lazy-minimum'] = 0;
+      o.options['lazy-minimum'] = 100;
       node.lazyParsePass(o);
     }
 
