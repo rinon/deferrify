@@ -275,13 +275,13 @@
         }
       }
       var id = o.scope.freshTemp();
-      o.functionStrMap[this.id.name] = id.name;
       var functionString = escodegen.generate(this, {format: {indent: { style: '', base: 0}}});
 
       if (functionString.length > o.options["lazy-minimum"]) {
         //print('compressing function ' + id.name);
         o.functionStrings[id.name] = '(' + functionString + ')';
         this.body = stub(this.id, id.name, this.params);
+        o.functionStrMap[this.id.name] = id.name;
       }
       return this;
     } else {
@@ -292,9 +292,6 @@
   AssignmentExpression.prototype.lazyParseNode = function (o) {
     if (this.right instanceof FunctionExpression) {
       var id = o.scope.freshTemp();
-      if (this.left instanceof Identifier) {
-        o.functionStrMap[this.left.name] = id.name;
-      }
       var functionString = escodegen.generate(this.right, {format: {indent: { style: '', base: 0}}});
 
       if (functionString.length > o.options["lazy-minimum"]) {
@@ -309,6 +306,9 @@
         //print('compressing function ' + id.name);
         o.functionStrings[id.name] = '(' + functionString + ')';
         this.right.body = stub(this.left, id.name, this.right.params);
+        if (this.left instanceof Identifier) {
+          o.functionStrMap[this.left.name] = id.name;
+        }
       }
     }
     // else if (this.right instanceof Identifier) {
@@ -326,7 +326,7 @@
 
   function resolve(identifier, o) {
     if (identifier.variable && identifier.variable.type instanceof Types.ArrowType
-       && typeof o.functionStrMap[identifier.name] === 'string') {
+       && o.functionStrMap[identifier.name]) {
       var strId = new Identifier(o.functionStrMap[identifier.name]);
       return new SequenceExpression([
         new AssignmentExpression(
