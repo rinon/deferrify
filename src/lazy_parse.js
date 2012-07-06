@@ -33,6 +33,8 @@
   const BinaryExpression = T.BinaryExpression;
   const UnaryExpression = T.UnaryExpression;
   const SequenceExpression = T.SequenceExpression;
+  const ArrayExpression = T.ArrayExpression;
+  const ForInStatement = T.ForInStatement;
 
   /**
    * Import utilities.
@@ -96,6 +98,135 @@
                 )
               )
             ),
+            new ForInStatement(
+              new VariableDeclaration(
+                "var", [
+                  new VariableDeclarator(
+                    new Identifier("x")
+                  )
+                ]
+              ),
+              new Identifier("f"),
+              new BlockStatement([
+                new ExpressionStatement(
+                  new AssignmentExpression(
+                    new MemberExpression(
+                      tempId,
+                      new Identifier("x"),
+                      true
+                    ), "=",
+                    new MemberExpression(
+                      new Identifier("f"),
+                      new Identifier("x"),
+                      true
+                    )
+                  )
+                )
+              ])
+            ),
+            new ReturnStatement(
+              tempId
+            )
+          ])
+        ),
+        new ReturnStatement(
+          new Identifier("f")
+        )
+      ])
+    );
+  }
+
+
+  function stubFConstructor() {
+    var tempId = new Identifier("t");
+    var strId = new Identifier("s");
+    var funcId = new Identifier("f");
+    var paramsId = new Identifier("p");
+    return new FunctionDeclaration(
+      new Identifier("stubF"),
+      [strId, funcId, paramsId],
+      new BlockStatement([
+        new IfStatement(
+          new BinaryExpression(
+            "===",
+            new UnaryExpression(
+              "typeof",
+              strId
+            ),
+            new Literal("string")
+          ),
+          new BlockStatement([
+            new ExpressionStatement(
+              new CallExpression(
+                new MemberExpression(
+                  paramsId,
+                  new Identifier("push"),
+                  false, "."
+                ),
+                [strId]
+              )
+            ),
+            new VariableDeclaration(
+              "var", [
+                new VariableDeclarator(
+                  tempId,
+                  new CallExpression(
+                    new MemberExpression(
+                      new Identifier("Function"),
+                      new Identifier("apply"),
+                      false, "."
+                    ),
+                    [
+                      new Identifier("this"),
+                      paramsId
+                    ]
+                  )
+                )
+              ]
+            ),
+            new ExpressionStatement(
+              new AssignmentExpression(
+                new MemberExpression(
+                  tempId,
+                  new Identifier("prototype"),
+                  false,
+                  "."
+                ),
+                "=",
+                new MemberExpression(
+                  new Identifier("f"),
+                  new Identifier("prototype"),
+                  false,
+                  "."
+                )
+              )
+            ),
+            new ForInStatement(
+              new VariableDeclaration(
+                "var", [
+                  new VariableDeclarator(
+                    new Identifier("x")
+                  )
+                ]
+              ),
+              new Identifier("f"),
+              new BlockStatement([
+                new ExpressionStatement(
+                  new AssignmentExpression(
+                    new MemberExpression(
+                      tempId,
+                      new Identifier("x"),
+                      true
+                    ), "=",
+                    new MemberExpression(
+                      new Identifier("f"),
+                      new Identifier("x"),
+                      true
+                    )
+                  )
+                )
+              ])
+            ),
             new ReturnStatement(
               tempId
             )
@@ -109,9 +240,19 @@
   }
         
 
-  function stub(id, strName, params) {
+  function stub(id, strName, stubName, params) {
     var tempId = new Identifier("t");
     var strId = new Identifier(strName);
+
+    var stubParams = [strId, id];
+
+    if (stubName === "stubF") {
+      var paramArray = [];
+      for (var i = 0, l = params.length; i < l; i++) {
+        paramArray.push(new Literal(params[i].name));
+      }
+      stubParams.push(new ArrayExpression(paramArray));
+    }
     return new BlockStatement([
       // new IfStatement(
       //   new BinaryExpression(
@@ -168,8 +309,8 @@
         new AssignmentExpression(
           id, "=",
           new CallExpression(
-            new Identifier("stub"),
-            [strId, id]
+            new Identifier(stubName),
+            stubParams
           )
         )
       ),
@@ -211,23 +352,41 @@
   Program.prototype.lazyParsePass = function (o) {
     o.scope = this.frame;
     o = extend(o);
-    o.functionStrings = Object.create(null);
-    o.functionStrMap = Object.create(null);
+    o.laziness = {
+      functionStrings: Object.create(null),
+      functionMap: Object.create(null),
+      isClosure: false
+    };
 
     this.body = passOverList(this.body, 'lazyParsePass', o);
 
-    var strId, strDeclaration, addedVars = false;
-    for (var name in o.functionStrings) {
+    var strId, strDeclaration;
+    for (var name in o.laziness.functionStrings) {
       strId = new Identifier(name, "variable");
       strDeclaration = new VariableDeclaration(
         "var",
-        [new VariableDeclarator(strId, new Literal(o.functionStrings[name]), undefined)]
+        [new VariableDeclarator(strId, new Literal(o.laziness.functionStrings[name]), undefined)]
       );
       this.body.unshift(strDeclaration);
-      addedVars = true;
     }
-    if (addedVars) {
+    var needsStub = false, needsStubF = false;
+    for (var name in o.laziness.functionMap) {
+      if (o.laziness.functionMap[name].isClosure) {
+        needsStub = true;
+      } else {
+        needsStubF = true;
+      }
+      if (needsStub && needsStubF) {
+        break;
+      }
+    }
+
+    if (needsStub) {
       this.body.unshift(stubConstructor());
+    }
+    if (needsStubF) {
+      print("Can optimize constructor");
+      this.body.unshift(stubFConstructor());
     }
 
 
@@ -244,57 +403,101 @@
 
   FunctionExpression.prototype.lazyParsePass = 
   FunctionDeclaration.prototype.lazyParsePass = function (o) {
-    var childO = extend(o);
-    childO.scope = this.frame;
-    childO.functionStrings = Object.create(null);
-    childO.functionStrMap = Object.create(null);
-    this.body = this.body.lazyParsePass(childO);
+    var childOpts = extend(o);
+    childOpts.scope = this.frame;
+    childOpts.laziness = {
+      functionStrings: Object.create(null),
+      functionMap: Object.create(null),
+      isClosure: false
+    };
+    this.body = this.body.lazyParsePass(childOpts);
 
-    var strId, strDeclaration, addedVars = false;
-    for (var name in childO.functionStrings) {
+    var strId, strDeclaration;
+    for (var name in childOpts.laziness.functionStrings) {
       strId = new Identifier(name, "variable");
       strDeclaration = new VariableDeclaration(
         "var",
-        [new VariableDeclarator(strId, new Literal(childO.functionStrings[name]), undefined)]
+        [new VariableDeclarator(strId, new Literal(childOpts.laziness.functionStrings[name]), undefined)]
       );
       prepend(strDeclaration, this.body);
-      addedVars = true;
     }
-    if (addedVars) {
+    var needsStub = false, needsStubF = false;
+    for (var name in childOpts.laziness.functionMap) {
+      if (childOpts.laziness.functionMap[name].isClosure) {
+        needsStub = true;
+      } else {
+        needsStubF = true;
+      }
+      if (needsStub && needsStubF) {
+        break;
+      }
+    }
+
+    if (needsStub) {
       prepend(stubConstructor(), this.body);
     }
+    if (needsStubF) {
+      print("Can optimize constructor");
+      prepend(stubFConstructor(), this.body);
+    }
+
 
 
     if (this instanceof FunctionDeclaration) {
-      if (this.id instanceof Identifier && this.params) {
-        for (var i = 0, l = this.params.length; i < l; i++) {
-          var param = this.params[i];
-          if (param instanceof Identifier && this.id.name === param.name) {
-            return this;
+      var functionString = escodegen.generate(this, {format: {indent: { style: '', base: 0}}});
+      if (functionString.length > o.options["lazy-minimum"]) {
+        if (this.id instanceof Identifier && this.params) {
+          for (var i = 0, l = this.params.length; i < l; i++) {
+            var param = this.params[i];
+            if (param instanceof Identifier && this.id.name === param.name) {
+              return this;
+            }
           }
         }
-      }
-      var id = o.scope.freshTemp();
-      var functionString = escodegen.generate(this, {format: {indent: { style: '', base: 0}}});
 
-      if (functionString.length > o.options["lazy-minimum"]) {
-        //print('compressing function ' + id.name);
-        o.functionStrings[id.name] = '(' + functionString + ')';
-        this.body = stub(this.id, id.name, this.params);
-        o.functionStrMap[this.id.name] = id.name;
+        var id = o.scope.freshTemp();
+        if (childOpts.laziness.isClosure) {
+          o.laziness.functionStrings[id.name] = '(' + functionString + ')';
+          this.body = stub(this.id, id.name, "stub", this.params);
+        } else {
+          functionString = escodegen.generate(this.body, {format: {indent: { style: '', base: 0}}});
+          o.laziness.functionStrings[id.name] = functionString;
+          this.body = stub(this.id, id.name, "stubF", this.params);
+        }
+
+        o.laziness.functionMap[this.id.name] = {mangled: id.name, isClosure: childOpts.laziness.isClosure, params: this.params};
       }
       return this;
     } else {
+      this.isClosure = childOpts.laziness.isClosure;
       return this;
     }
   }
 
+  Identifier.prototype.lazyParseNode = function (o) {
+    if (this.name === "eval") {
+      o.laziness.isClosure = true;
+      return this;
+    }
+    if (typeof o.laziness.isClosure !== "undefined" &&
+        !o.laziness.isClosure &&
+        this.kind === "variable") {
+      var scope = o.scope;
+      var variable = scope.variables[this.name];
+
+      if (!variable) {
+        o.laziness.isClosure = true;
+      }
+    }
+    return this;
+  }
+
   AssignmentExpression.prototype.lazyParseNode = function (o) {
     if (this.right instanceof FunctionExpression) {
-      var id = o.scope.freshTemp();
       var functionString = escodegen.generate(this.right, {format: {indent: { style: '', base: 0}}});
-
       if (functionString.length > o.options["lazy-minimum"]) {
+        var id = o.scope.freshTemp();
+
         if (this.left instanceof Identifier && this.params) {
           for (var i = 0, l = this.params.length; i < l; i++) {
             var param = this.params[i];
@@ -304,11 +507,22 @@
           }
         }
         //print('compressing function ' + id.name);
-        o.functionStrings[id.name] = '(' + functionString + ')';
-        this.right.body = stub(this.left, id.name, this.right.params);
-        if (this.left instanceof Identifier) {
-          o.functionStrMap[this.left.name] = id.name;
+
+        if (this.right.isClosure) {
+          o.laziness.functionStrings[id.name] = '(' + functionString + ')';
+          this.right.body = stub(this.left, id.name, "stub", this.right.params);
+        } else {
+          o.laziness.functionStrings[id.name] = escodegen.generate(this.right.body, {format: {indent: { style: '', base: 0}}});
+          this.right.body = stub(this.left, id.name, "stubF", this.right.params);
         }
+
+        var funcName;
+        if (this.left instanceof Identifier) {
+          funcName = this.left.name;
+        } else {
+          funcName = id.name;
+        }
+        o.laziness.functionMap[this.left.name] = {mangled: id.name, isClosure: this.right.isClosure, params: this.right.params}; // TODO - fix closures here
       }
     }
     // else if (this.right instanceof Identifier) {
@@ -326,15 +540,31 @@
 
   function resolve(identifier, o) {
     if (identifier.variable && identifier.variable.type instanceof Types.ArrowType
-       && o.functionStrMap[identifier.name]) {
-      var strId = new Identifier(o.functionStrMap[identifier.name]);
+       && o.laziness.functionMap[identifier.name]) {
+      var functionEntry = o.laziness.functionMap[identifier.name];
+      var strId = new Identifier(o.laziness.functionMap[identifier.name].mangled);
+
+      var stubCall;
+      if (functionEntry.isClosure) {
+        stubCall = new CallExpression(
+          new Identifier("stub"),
+          [strId, identifier]
+        );
+      } else {
+        var paramArray = [];
+        for (var i = 0, l = functionEntry.params.length; i < l; i++) {
+          paramArray.push(new Literal(functionEntry.params[i].name));
+        }
+        stubCall = new CallExpression(
+          new Identifier("stubF"),
+          [strId, identifier, new ArrayExpression(paramArray)]
+        );
+      }
+
       return new SequenceExpression([
         new AssignmentExpression(
           identifier, "=",
-          new CallExpression(
-            new Identifier("stub"),
-            [strId, identifier]
-          )
+          stubCall
         ),
         new AssignmentExpression(
           strId, "=",
