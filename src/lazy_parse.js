@@ -32,6 +32,7 @@
   const IfStatement = T.IfStatement;
   const BinaryExpression = T.BinaryExpression;
   const UnaryExpression = T.UnaryExpression;
+  const SequenceExpression = T.SequenceExpression;
 
   /**
    * Import utilities.
@@ -211,6 +212,7 @@
     o.scope = this.frame;
     o = extend(o);
     o.functionStrings = Object.create(null);
+    o.functionStrMap = Object.create(null);
 
     this.body = passOverList(this.body, 'lazyParsePass', o);
 
@@ -245,6 +247,7 @@
     var childO = extend(o);
     childO.scope = this.frame;
     childO.functionStrings = Object.create(null);
+    childO.functionStrMap = Object.create(null);
     this.body = this.body.lazyParsePass(childO);
 
     var strId, strDeclaration, addedVars = false;
@@ -272,6 +275,7 @@
         }
       }
       var id = o.scope.freshTemp();
+      o.functionStrMap[this.id.name] = id.name;
       var functionString = escodegen.generate(this, {format: {indent: { style: '', base: 0}}});
 
       if (functionString.length > o.options["lazy-minimum"]) {
@@ -288,6 +292,9 @@
   AssignmentExpression.prototype.lazyParseNode = function (o) {
     if (this.right instanceof FunctionExpression) {
       var id = o.scope.freshTemp();
+      if (this.left instanceof Identifier) {
+        o.functionStrMap[this.left.name] = id.name;
+      }
       var functionString = escodegen.generate(this.right, {format: {indent: { style: '', base: 0}}});
 
       if (functionString.length > o.options["lazy-minimum"]) {
@@ -311,18 +318,33 @@
     return this;
   }
 
-  // CallExpression.prototype.lazyParseNode = function (o) {
-  //   for (var i = 0, l = this.arguments.length; i < l; i++) {
-  //     this.arguments[i] = resolve(this.arguments[i], o);
-  //   }
-  // }
+  CallExpression.prototype.lazyParseNode = function (o) {
+    for (var i = 0, l = this.arguments.length; i < l; i++) {
+      this.arguments[i] = resolve(this.arguments[i], o);
+    }
+  }
 
-  // function resolve(identifier, o) {
-  //   if (identifier.variable && identifier.variable.type instanceof Types.ArrowType) {
-  //     return new CallExpression(new Identifier("_resolve"), [new Literal(identifier.name)]);
-  //   } else {
-  //     return identifier;
-  //   }
-  // }
+  function resolve(identifier, o) {
+    if (identifier.variable && identifier.variable.type instanceof Types.ArrowType
+       && typeof o.functionStrMap[identifier.name] === 'string') {
+      var strId = new Identifier(o.functionStrMap[identifier.name]);
+      return new SequenceExpression([
+        new AssignmentExpression(
+          identifier, "=",
+          new CallExpression(
+            new Identifier("stub"),
+            [strId, identifier]
+          )
+        ),
+        new AssignmentExpression(
+          strId, "=",
+          new Identifier("null")
+        ),
+        identifier
+      ]);
+    } else {
+      return identifier;
+    }
+  }
 
 }).call(this, typeof exports === "undefined" ? (lazyParse = {}) : exports);
