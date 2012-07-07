@@ -154,6 +154,7 @@
       return;
     }
     assert(!this.variables[variable.name], "Scope already has a variable named " + variable.name);
+    variable.external = external;
     variable.frame = this.frame;
 
     var variables = this.variables;

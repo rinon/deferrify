@@ -131,7 +131,6 @@
         break;
       }
     }
-    options.warn = false;
 
     if(options.nowarn) {
       options.warn = false;

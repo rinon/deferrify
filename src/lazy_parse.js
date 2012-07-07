@@ -369,6 +369,7 @@
       );
       this.body.unshift(strDeclaration);
     }
+
     var needsStub = false, needsStubF = false;
     for (var name in o.laziness.functionMap) {
       if (o.laziness.functionMap[name].isClosure) {
@@ -484,8 +485,9 @@
         this.kind === "variable") {
       var scope = o.scope;
       var variable = scope.variables[this.name];
+      var parentVar = scope.getVariable(this.name);
 
-      if (!variable) {
+      if (!variable && !parentVar.external) {
         o.laziness.isClosure = true;
       }
     }
@@ -522,7 +524,7 @@
         } else {
           funcName = id.name;
         }
-        o.laziness.functionMap[this.left.name] = {mangled: id.name, isClosure: this.right.isClosure, params: this.right.params}; // TODO - fix closures here
+        o.laziness.functionMap[funcName] = {mangled: id.name, isClosure: this.right.isClosure, params: this.right.params};
       }
     }
     // else if (this.right instanceof Identifier) {
