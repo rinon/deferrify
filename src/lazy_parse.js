@@ -53,6 +53,14 @@
    * Begin rewrite pass
    */
 
+  function Laziness() {
+    this.functionStrings = Object.create(null);
+    this.functionMap = Object.create(null);
+    this.isClosure = false;
+    this.needsStub = false;
+    this.needsStubF = false;
+  }
+
   function stubConstructor() {
     var tempId = new Identifier("t");
     var strId = new Identifier("s");
@@ -352,11 +360,7 @@
   Program.prototype.lazyParsePass = function (o) {
     o.scope = this.frame;
     o = extend(o);
-    o.laziness = {
-      functionStrings: Object.create(null),
-      functionMap: Object.create(null),
-      isClosure: false
-    };
+    o.laziness = new Laziness();
 
     this.body = passOverList(this.body, 'lazyParsePass', o);
 
@@ -370,22 +374,10 @@
       this.body.unshift(strDeclaration);
     }
 
-    var needsStub = false, needsStubF = false;
-    for (var name in o.laziness.functionMap) {
-      if (o.laziness.functionMap[name].isClosure) {
-        needsStub = true;
-      } else {
-        needsStubF = true;
-      }
-      if (needsStub && needsStubF) {
-        break;
-      }
-    }
-
-    if (needsStub) {
+    if (o.laziness.needsStub) {
       this.body.unshift(stubConstructor());
     }
-    if (needsStubF) {
+    if (o.laziness.needsStubF) {
       print("Can optimize constructor");
       this.body.unshift(stubFConstructor());
     }
@@ -406,11 +398,7 @@
   FunctionDeclaration.prototype.lazyParsePass = function (o) {
     var childOpts = extend(o);
     childOpts.scope = this.frame;
-    childOpts.laziness = {
-      functionStrings: Object.create(null),
-      functionMap: Object.create(null),
-      isClosure: false
-    };
+    childOpts.laziness = new Laziness();
     this.body = this.body.lazyParsePass(childOpts);
 
     var strId, strDeclaration;
@@ -422,22 +410,11 @@
       );
       prepend(strDeclaration, this.body);
     }
-    var needsStub = false, needsStubF = false;
-    for (var name in childOpts.laziness.functionMap) {
-      if (childOpts.laziness.functionMap[name].isClosure) {
-        needsStub = true;
-      } else {
-        needsStubF = true;
-      }
-      if (needsStub && needsStubF) {
-        break;
-      }
-    }
 
-    if (needsStub) {
+    if (childOpts.laziness.needsStub) {
       prepend(stubConstructor(), this.body);
     }
-    if (needsStubF) {
+    if (childOpts.laziness.needsStubF) {
       print("Can optimize constructor");
       prepend(stubFConstructor(), this.body);
     }
@@ -460,10 +437,12 @@
         if (childOpts.laziness.isClosure) {
           o.laziness.functionStrings[id.name] = '(' + functionString + ')';
           this.body = stub(this.id, id.name, "stub", this.params);
+          o.laziness.needsStub = true;
         } else {
           functionString = escodegen.generate(this.body, {format: {indent: { style: '', base: 0}}});
           o.laziness.functionStrings[id.name] = functionString;
           this.body = stub(this.id, id.name, "stubF", this.params);
+          o.laziness.needsStubF = true;
         }
 
         o.laziness.functionMap[this.id.name] = {mangled: id.name, isClosure: childOpts.laziness.isClosure, params: this.params};
@@ -487,6 +466,11 @@
       var variable = scope.variables[this.name];
       var parentVar = scope.getVariable(this.name);
 
+      if (!parentVar) {
+        // Should be the identifier for a catch clause
+        return this;
+      }
+
       if (!variable && !parentVar.external) {
         o.laziness.isClosure = true;
       }
@@ -496,6 +480,8 @@
 
   AssignmentExpression.prototype.lazyParseNode = function (o) {
     if (this.right instanceof FunctionExpression) {
+      var oldId = this.right.id;
+      this.right.id = null;
       var functionString = escodegen.generate(this.right, {format: {indent: { style: '', base: 0}}});
       if (functionString.length > o.options["lazy-minimum"]) {
         var id = o.scope.freshTemp();
@@ -513,9 +499,11 @@
         if (this.right.isClosure) {
           o.laziness.functionStrings[id.name] = '(' + functionString + ')';
           this.right.body = stub(this.left, id.name, "stub", this.right.params);
+          o.laziness.needsStub = true;
         } else {
           o.laziness.functionStrings[id.name] = escodegen.generate(this.right.body, {format: {indent: { style: '', base: 0}}});
           this.right.body = stub(this.left, id.name, "stubF", this.right.params);
+          o.laziness.needsStubF = true;
         }
 
         var funcName;
@@ -525,6 +513,8 @@
           funcName = id.name;
         }
         o.laziness.functionMap[funcName] = {mangled: id.name, isClosure: this.right.isClosure, params: this.right.params};
+      } else {
+        this.right.id = oldId;
       }
     }
     // else if (this.right instanceof Identifier) {
