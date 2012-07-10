@@ -377,7 +377,6 @@
       this.body.unshift(stubConstructor(o.scope.freshTemp(), o.scope.freshTemp()));
     }
     if (o.laziness.needsStubF) {
-      print("Can optimize constructor");
       this.body.unshift(stubFConstructor(o.scope.freshTemp(), o.scope.freshTemp(), o.scope.freshTemp()));
     }
 
@@ -414,7 +413,6 @@
       prepend(stubConstructor(o.scope.freshTemp(), o.scope.freshTemp()), this.body);
     }
     if (childOpts.laziness.needsStubF) {
-      print("Can optimize constructor");
       prepend(stubFConstructor(o.scope.freshTemp(), o.scope.freshTemp(), o.scope.freshTemp()), this.body);
     }
 
