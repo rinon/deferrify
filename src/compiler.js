@@ -1492,6 +1492,8 @@
     logger = _logger;
     var o = { name: name, logger: _logger, warn: warningOptions(options), jsInput: options['js-input'], memcheck: options.memcheck };
 
+    options.compiler = "lljs";
+
     jsFrontend.initialize(o);
 
     // Lift into constructors.
@@ -1533,6 +1535,11 @@
     return T.flatten(createModule(node, name, options.bare, options["load-instead"], options.memcheck));
   }
 
+  exports.initialize = function (o) {
+    logger = o.logger;
+  }
+
+  exports.resolveAndLintTypes = resolveAndLintTypes;
   exports.compile = compile;
 
 })(typeof exports === 'undefined' ? (compiler = {}) : exports);

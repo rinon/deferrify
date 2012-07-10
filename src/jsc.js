@@ -7,13 +7,6 @@
   var mode;
   if (typeof process !== "undefined") {
     mode = NODE_JS;
-    // Install compiler as an extension for '.ljs' files that are loaded using the
-    // |require| function. This is how mocha tests are executed.
-    var fs = require('fs');
-    require.extensions['.ljs'] = function(module, filename) {
-      var source = fs.readFileSync(filename, 'utf8');
-      return module._compile(compile(source, {filename: filename, memcheck: false}), filename);
-    };
   } else if (typeof snarf !== "undefined") {
     mode = JS_SHELL;
   } else {
@@ -28,18 +21,18 @@
     esprima = require("./esprima.js");
     escodegen = require("./escodegen.js");
     estransform = require("./estransform.js");
-    compiler = require("./compiler.js");
+    compiler = require("./js_compiler.js");
 
     snarf = require('fs').readFileSync;
     argv = process.argv.slice(2);
     print = console.log;
     quit = process.exit;
   } else if (mode === JS_SHELL) {
-    load("./estransform.js");
     load("./util.js");
     load("./esprima.js");
     load("./escodegen.js");
-    load("./compiler.js");
+    load("./estransform.js");
+    load("./js_compiler.js");
 
     argv = this.arguments;
   }
@@ -49,7 +42,7 @@
     esprima = this.esprima;
     escodegen = this.escodegen;
     estransform = this.estransform;
-    compiler = this.compiler;
+    compiler = this.JSCompiler;
   }
 
   const assert = util.assert;
@@ -61,7 +54,7 @@
       ["E",           "only-parse",   false, "Only parse"],
       ["A",           "emit-ast",     false, "Do not generate JS, emit AST"],
       ["P",           "pretty-print", false, "Pretty-print AST instead of emitting JSON (with -A)"],
-      ["j",           "js-input",     false, "Input should be treated as JS, not LLJS"],
+      ["z",           "lazy-minimum", "", "Enable lazy function parsing with minimum length (defaults to all functions if enabled)"],
       ["b",           "bare",         false, "Do not wrap in a module"],
       ["l",           "load-instead", false, "Emit load('memory') instead of require('memory')"],
       ["W",           "warn",         true,  "Print warnings (enabled by default)"],
@@ -69,7 +62,6 @@
       ["0",           "simple-log",   false, "Log simple messages. No colors and snippets."],
       ["t",           "trace",        false, "Trace compiler execution"],
       ["o",           "output",       "",    "Output file name"],
-      ["m",           "memcheck",     false, "Compile with memcheck instrumentation"],
       ["h",           "help",         false, "Print this message"],
       ["w",           "nowarn",       false, "Inhibit all warning messages"]
     ]);
@@ -83,7 +75,7 @@
     var files = p.rest;
 
     if (!files.length || options.help) {
-      print("ljc: [option(s)] file");
+      print("jsc: [option(s)] file");
       print(optparser.usage());
       quit();
     }
@@ -95,9 +87,7 @@
     basename = basename.substr(0, basename.lastIndexOf(".")) || basename;
 
     var source = snarf(filename);
-    options.filename = filename;
-    options.basename = basename;
-    var code = compile(source, options);
+    var code = compile(basename, filename, source, options);
 
     if (options["pretty-print"]) {
       print(util.pretty(code));
@@ -121,7 +111,7 @@
     }
   }
 
-  function compile(source, options) {
+  function compile(name, logName, source, options) {
     // -W anything infers -W.
     for (var p in options) {
       if (p.charAt(0) === "W") {
@@ -134,18 +124,18 @@
       options.warn = false;
     }
 
-    var logger = new util.Logger("ljc", options.filename, source, options);
+    var logger = new util.Logger("jsc", logName, source, options);
     var code;
 
     try {
-      var node = esprima.parse(source, { loc: true, comment: true, range: true, tokens: true, jsInput: (options["js-input"] !== false) });
+      var node = esprima.parse(source, { loc: true, comment: true, range: true, tokens: true });
 
       node = escodegen.attachComments(node, node.comments, node.tokens);
 
       if (options["only-parse"]) {
         code = node;
       } else {
-        node = compiler.compile(node, options.filename, logger, options);
+        node = compiler.compile(node, name, logger, options);
         if (options["emit-ast"]) {
           code = node;
         } else {
@@ -187,4 +177,4 @@
     cli();
   }
 
-}).call(this, typeof exports === "undefined" ? (LJC = {}) : exports);
+}).call(this, typeof exports === "undefined" ? (LSC = {}) : exports);
