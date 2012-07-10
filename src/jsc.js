@@ -128,7 +128,7 @@
     var code;
 
     try {
-      var node = esprima.parse(source, { loc: true, comment: true, range: true, tokens: true });
+      var node = esprima.parse(source, { loc: true, comment: true, range: true, tokens: true, jsInput: true });
 
       node = escodegen.attachComments(node, node.comments, node.tokens);
 
