@@ -1518,25 +1518,27 @@
       node.externPass(o);
     }
 
-    // Pass 2.6 - casting unsafe assignments
-    if (options['js-input']) {
-      node.jsCastPass(o);
+    if (options["run-lljs"]) {
+      // Pass 2.6 - casting unsafe assignments
+      if (options['js-input']) {
+        node.jsCastPass(o);
+      }
+
+      // Pass 3.
+      logger.info("Pass 3");
+      node = node.transform(o);
+
+      // Pass 4.
+      logger.info("Pass 4");
+      node = node.lower(o);
     }
 
-    // Pass 3.
-    logger.info("Pass 3");
-    node = node.transform(o);
-
-    // Pass 4.
-    logger.info("Pass 4");
-    node = node.lower(o);
-
-    if (options['lazy-minimum'] !== false) {
-      o.options['lazy-minimum'] = 0;
+    if (options["lazy-minimum"] !== "") {
       node.lazyParsePass(o);
     }
 
     return T.flatten(createModule(node, name, options.bare, options["load-instead"], options.memcheck));
+    //return T.flatten(node);
   }
 
   exports.initialize = function (o) {

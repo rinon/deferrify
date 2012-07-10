@@ -46,6 +46,9 @@
 
   exports.initialize = function (o) {
     logger = o.logger;
+    if (o.options["lazy-minimum"] === true) {
+      o.options["lazy-minimum"] = 0;
+    }
   }
 
 
@@ -61,12 +64,11 @@
     this.needsStubF = false;
   }
 
-  function stubConstructor() {
+  function stubConstructor(strId, funcId) {
     var tempId = new Identifier("t");
-    var strId = new Identifier("s");
     return new FunctionDeclaration(
       new Identifier("stub"),
-      [new Identifier("s"), new Identifier("f")],
+      [strId, funcId],
       new BlockStatement([
         new IfStatement(
           new BinaryExpression(
@@ -99,7 +101,7 @@
                 ),
                 "=",
                 new MemberExpression(
-                  new Identifier("f"),
+                  funcId,
                   new Identifier("prototype"),
                   false,
                   "."
@@ -114,7 +116,7 @@
                   )
                 ]
               ),
-              new Identifier("f"),
+              funcId,
               new BlockStatement([
                 new ExpressionStatement(
                   new AssignmentExpression(
@@ -124,7 +126,7 @@
                       true
                     ), "=",
                     new MemberExpression(
-                      new Identifier("f"),
+                      funcId,
                       new Identifier("x"),
                       true
                     )
@@ -138,18 +140,15 @@
           ])
         ),
         new ReturnStatement(
-          new Identifier("f")
+          funcId
         )
       ])
     );
   }
 
 
-  function stubFConstructor() {
+  function stubFConstructor(strId, funcId, paramsId) {
     var tempId = new Identifier("t");
-    var strId = new Identifier("s");
-    var funcId = new Identifier("f");
-    var paramsId = new Identifier("p");
     return new FunctionDeclaration(
       new Identifier("stubF"),
       [strId, funcId, paramsId],
@@ -202,7 +201,7 @@
                 ),
                 "=",
                 new MemberExpression(
-                  new Identifier("f"),
+                  funcId,
                   new Identifier("prototype"),
                   false,
                   "."
@@ -217,7 +216,7 @@
                   )
                 ]
               ),
-              new Identifier("f"),
+              funcId,
               new BlockStatement([
                 new ExpressionStatement(
                   new AssignmentExpression(
@@ -227,7 +226,7 @@
                       true
                     ), "=",
                     new MemberExpression(
-                      new Identifier("f"),
+                      funcId,
                       new Identifier("x"),
                       true
                     )
@@ -241,7 +240,7 @@
           ])
         ),
         new ReturnStatement(
-          new Identifier("f")
+          funcId
         )
       ])
     );
@@ -375,11 +374,11 @@
     }
 
     if (o.laziness.needsStub) {
-      this.body.unshift(stubConstructor());
+      this.body.unshift(stubConstructor(o.scope.freshTemp(), o.scope.freshTemp()));
     }
     if (o.laziness.needsStubF) {
       print("Can optimize constructor");
-      this.body.unshift(stubFConstructor());
+      this.body.unshift(stubFConstructor(o.scope.freshTemp(), o.scope.freshTemp(), o.scope.freshTemp()));
     }
 
 
@@ -412,11 +411,11 @@
     }
 
     if (childOpts.laziness.needsStub) {
-      prepend(stubConstructor(), this.body);
+      prepend(stubConstructor(o.scope.freshTemp(), o.scope.freshTemp()), this.body);
     }
     if (childOpts.laziness.needsStubF) {
       print("Can optimize constructor");
-      prepend(stubFConstructor(), this.body);
+      prepend(stubFConstructor(o.scope.freshTemp(), o.scope.freshTemp(), o.scope.freshTemp()), this.body);
     }
 
 
