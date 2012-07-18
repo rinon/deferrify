@@ -48,7 +48,7 @@ if (mode === NODE_JS) {
 
 const MB = 1024 * 1024;
 const WORD_SIZE = sizeof(word);
-const SIZE = (256 * MB) / WORD_SIZE;
+const SIZE = (1023* MB) / WORD_SIZE;
 const STACK_SIZE = (2 * MB) / WORD_SIZE;
 const HEAP_SIZE = SIZE - STACK_SIZE;
 
@@ -207,7 +207,7 @@ function word *sbrk(int nBytes) {
   return address;
 }
 
-let uint nUnitsMin = 1024;
+let uint nUnitsMin = 1024*32;
 
 function Header *morecore(uint nUnits) {
   if (nUnits < nUnitsMin) {
@@ -234,7 +234,26 @@ function Header *morecore(uint nUnits) {
   return freep;
 }
 
-function byte *malloc(int nBytes) {
+const int pageSize = 1024*32; // times header size
+
+function byte *malloc_simple(int nBytes) {
+  let uint nUnits = ((nBytes + sizeof(Header) - 1) / sizeof(Header)) + 1;
+
+  //setInMemory(true);
+  if (freep->size < nUnits) {
+    freep = (Header*)(sbrk(pageSize * sizeof(Header)));
+  }
+
+  let Header *p = freep;
+  freep += nUnits;
+  freep->size = p->size-nUnits;
+
+  return (byte*)(p+1);
+}
+
+
+
+function byte *malloc_old(int nBytes) {
   let Header *p, *prevp;
   let uint nUnits = ((nBytes + sizeof(Header) - 1) / sizeof(Header)) + 1;
 
