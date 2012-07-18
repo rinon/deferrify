@@ -1132,7 +1132,7 @@
     if (this === rty || !(rty instanceof PointerType)) {
       if (!force) {
         check(!(rty instanceof PrimitiveType && rty.integral), "conversion from " +
-              quote(Types.tystr(rty, 0)) + " to pointer without cast", true);
+              quote(Types.tystr(rty, 0)) + " to pointer without cast");
       }
       return expr;
     }
