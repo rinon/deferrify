@@ -386,6 +386,11 @@
       logger.pop();
     }
 
+    if (!scope.getVariable('arguments', true)) {
+      scope.addVariable(new Variable('arguments', undefined));
+    }
+
+
     o = extend(o);
     scope = new Frame(scope, "Function " + (this.id ? this.id.name : "anonymous"));
     scope.returnType = ty.returnType;
@@ -394,6 +399,8 @@
     if (o.thisTy) {
       scope.addVariable(new Variable("this", o.thisTy));
     }
+
+    scope.addVariable(new Variable("arguments"), true);
 
     var params = this.params;
     var parameters = this.parameters = [];
