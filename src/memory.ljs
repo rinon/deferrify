@@ -46,11 +46,11 @@ if (mode === NODE_JS) {
 }
 
 
-const MB = 1024 * 1024;
-const WORD_SIZE = sizeof(word);
-const SIZE = (1023* MB) / WORD_SIZE;
-const STACK_SIZE = (2 * MB) / WORD_SIZE;
-const HEAP_SIZE = SIZE - STACK_SIZE;
+const uint MB = 1024 * 1024;
+const uint WORD_SIZE = sizeof(word);
+const uint SIZE = (1023* MB) / WORD_SIZE;
+const uint STACK_SIZE = (2 * MB) / WORD_SIZE;
+const uint HEAP_SIZE = SIZE - STACK_SIZE;
 
 // debug
 let log = function() { };
@@ -207,7 +207,7 @@ function word *sbrk(int nBytes) {
   return address;
 }
 
-let uint nUnitsMin = 1024*32;
+let uint nUnitsMin = 1024*16;
 
 function Header *morecore(uint nUnits) {
   if (nUnits < nUnitsMin) {
@@ -236,6 +236,7 @@ function Header *morecore(uint nUnits) {
 
 const int pageSize = 1024*32; // times header size
 
+// dead simple paged version
 function byte *malloc_simple(int nBytes) {
   let uint nUnits = ((nBytes + sizeof(Header) - 1) / sizeof(Header)) + 1;
 
@@ -251,8 +252,47 @@ function byte *malloc_simple(int nBytes) {
   return (byte*)(p+1);
 }
 
+// single page
+function byte *malloc(int nBytes) {
+  let Header *p, *prevp;
+  let uint nUnits = ((nBytes + sizeof(Header) - 1) / sizeof(Header)) + 1;
 
+  setInMemory(true);
+  if ((prevp = freep) === null) {
+    base->next = freep = prevp = base;
+    base->size = 0;
+    base = morecore(HEAP_SIZE/sizeof(Header));
+  }
 
+  for (p = prevp->next; true; prevp = p, p = p->next) {
+    if (p->size >= nUnits) {
+      if (p->size === nUnits) {
+        prevp->next = p->next;
+      } else {
+        p->size -= nUnits;
+        p += p->size;
+        p->size = nUnits;
+      }
+      freep = prevp;
+      if(enable_memcheck) {
+        // record that this chunck of memory can be addressed
+        ck.setAddressable((byte *) (p+1), nBytes, true);
+        ck.setAlloc((byte *) (p+1), true);
+      }
+      setInMemory(false);
+      return (byte*)(p + 1);
+    }
+    if (p === freep) {
+      // Out of heap space
+      setInMemory(false);
+      return null;
+    }
+  }
+  setInMemory(false);
+  return null;
+}
+
+// Original
 function byte *malloc_old(int nBytes) {
   let Header *p, *prevp;
   let uint nUnits = ((nBytes + sizeof(Header) - 1) / sizeof(Header)) + 1;
