@@ -1497,6 +1497,7 @@
     var o = { name: name, logger: _logger, warn: warningOptions(options), jsInput: options['js-input'], memcheck: options.memcheck, compiler: "lljs" };
 
     jsFrontend.initialize(o);
+    lazyParse.initialize(o);
 
     // Lift into constructors.
     node = T.lift(node);
