@@ -109,9 +109,9 @@
     "performance"
   ];
 
-  requireGlobals = ["define", "module"];
+  var requireGlobals = ["define", "module"];
 
-  nodeGlobals = ["global"];
+  var nodeGlobals = ["global"];
 
   var externs = (function () {
     var externs = Object.create(null);
@@ -169,7 +169,7 @@
 
     logger.pop();
     return this;
-  }
+  };
 
   FunctionExpression.prototype.jsRewrite =
   FunctionDeclaration.prototype.jsRewrite = function (o) {
@@ -210,6 +210,7 @@
     var variableDeclaration, variableDeclarators = [];
     for (name in o.variables) {
       if (!inParams(name, this.params) && !o.functions[name]) {
+        print("Declaring " + name);
         variableDeclarators.push(new VariableDeclarator(o.variables[name], null, null, null, o.variables[name].loc));
       }
     }
@@ -232,7 +233,7 @@
 
     logger.pop();
     return lifted ? null : this;
-  }
+  };
 
   ForStatement.prototype.rewriteNode = function (o) {
     if (this.init instanceof ExpressionStatement) {
@@ -278,14 +279,14 @@
     } else {
       return null;
     }
-  }
+  };
 
   VariableDeclarator.prototype.rewriteNode = function (o) {
     if (this.init) {
       return new AssignmentExpression(this.id, "=", this.init, undefined, this.init.loc);;
     }
     return null;
-  }
+  };
 
 
   /**
@@ -300,7 +301,7 @@
     o.scope = this.frame;
     this.body = passOverList(this.body, 'jsCastPass', o);
     return this;
-  }
+  };
 
   FunctionExpression.prototype.jsCastPass =
   FunctionDeclaration.prototype.jsCastPass = function (o) {
@@ -334,7 +335,7 @@
       logger.warn("Possibly unsafe cast from " + quote(Types.tystr(rty, 0)) + " to " + quote(Types.tystr(lty, 0)));
     }
     return this;
-  }
+  };
 
   /**
    * extern Pass
@@ -406,7 +407,7 @@
         }
       }
     }
-  }
+  };
 
   function initialize(o) {
     logger = o.logger;
