@@ -336,7 +336,7 @@
         keyword = (id === 'this') || (id === 'else') || (id === 'case') || (id === 'void') || (id === 'with');
         break;
       case 5:
-        keyword = (id === 'while') || (id === 'break') || (id === 'catch') || (id === 'throw') || (id === 'union');
+        keyword = (id === 'while') || (id === 'break') || (id === 'catch') || (id === 'throw');
         break;
       case 6:
         keyword = (id === 'return') || (id === 'typeof') || (id === 'delete') || (id === 'switch');
@@ -363,7 +363,7 @@
         keyword = (id === 'this') || (id === 'else') || (id === 'case') || (id === 'void') || (id === 'with');
         break;
       case 5:
-        keyword = (id === 'while') || (id === 'break') || (id === 'catch') || (id === 'throw');
+        keyword = (id === 'while') || (id === 'break') || (id === 'catch') || (id === 'throw') || (id === 'union');
         break;
       case 6:
         keyword = (id === 'return') || (id === 'typeof') || (id === 'delete') || (id === 'switch');
