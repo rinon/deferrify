@@ -46,8 +46,8 @@
 
   exports.initialize = function (o) {
     logger = o.logger;
-    if (o.options["lazy-minimum"] === true) {
-      o.options["lazy-minimum"] = 0;
+    if (o["lazy-minimum"] === true) {
+      o["lazy-minimum"] = 0;
     }
   }
 
@@ -420,7 +420,7 @@
 
     if (this instanceof FunctionDeclaration) {
       var functionString = escodegen.generate(this, {format: {indent: { style: '', base: 0}}});
-      if (functionString.length > o.options["lazy-minimum"]) {
+      if (functionString.length > o["lazy-minimum"]) {
         if (this.id instanceof Identifier && this.params) {
           for (var i = 0, l = this.params.length; i < l; i++) {
             var param = this.params[i];
@@ -480,7 +480,7 @@
       var oldId = this.right.id;
       this.right.id = null;
       var functionString = escodegen.generate(this.right, {format: {indent: { style: '', base: 0}}});
-      if (functionString.length > o.options["lazy-minimum"]) {
+      if (functionString.length > o["lazy-minimum"]) {
         var id = o.scope.freshTemp();
 
         if (this.left instanceof Identifier && this.params) {

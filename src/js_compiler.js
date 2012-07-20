@@ -34,7 +34,7 @@
     // The logger is closed over by all the functions.
     logger = _logger;
 
-    var o = { name: name, logger: _logger, warn: warningOptions(options), jsInput: options['js-input'], compiler: "js" };
+    var o = { name: name, logger: _logger, warn: warningOptions(options), jsInput: true, memcheck: options.memcheck, compiler: "js", "lazy-minimum": options["lazy-minimum"] };
 
     LLJS.initialize(o);
     jsFrontend.initialize(o);
