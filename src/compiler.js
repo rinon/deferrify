@@ -1,11 +1,12 @@
 (function (exports) {
-  var util, T, S, Types, jsFrontend;
+  var util, T, S, Types, jsFrontend, lazyParse;
   if (typeof process !== "undefined") {
     util = require("./util.js");
     T = require("./estransform.js");
     S = require("./scope.js");
     Types = require("./types.js");
     jsFrontend = require("./js_frontend.js");
+    lazyParse = require("./lazy_parse.js");
   } else if (typeof snarf !== "undefined") {
     util = this.util;
     T = estransform;
@@ -14,12 +15,14 @@
     S = scope;
     load("./js_frontend.js");
     jsFrontend = this.jsFrontend;
+    load("./lazy_parse.js");
   } else {
     util = this.util;
     T = estransform;
     S = scope;
     Types = this.Types;
     jsFrontend = this.jsFrontend;
+    lazyParse = this.lazyParse;
   }
 
 
