@@ -261,7 +261,7 @@ function byte *malloc(int nBytes) {
   if ((prevp = freep) === null) {
     base->next = freep = prevp = base;
     base->size = 0;
-    base = morecore(HEAP_SIZE/sizeof(Header));
+    base = morecore(HEAP_SIZE/2-2);
   }
 
   for (p = prevp->next; true; prevp = p, p = p->next) {
