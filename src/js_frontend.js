@@ -210,7 +210,6 @@
     var variableDeclaration, variableDeclarators = [];
     for (name in o.variables) {
       if (!inParams(name, this.params) && !o.functions[name]) {
-        print("Declaring " + name);
         variableDeclarators.push(new VariableDeclarator(o.variables[name], null, null, null, o.variables[name].loc));
       }
     }
