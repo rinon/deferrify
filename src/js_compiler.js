@@ -36,9 +36,7 @@
     // The logger is closed over by all the functions.
     logger = _logger;
 
-    options.compiler = "js";
-
-    var o = { name: name, logger: _logger, warn: warningOptions(options), options: options };
+    var o = { name: name, logger: _logger, warn: warningOptions(options), compiler: "js" };
 
     LLJS.initialize(o);
     jsFrontend.initialize(o);

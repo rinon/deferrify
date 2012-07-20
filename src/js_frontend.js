@@ -357,7 +357,7 @@
       logger.info("Adding extern " + name);
     }
 
-    if (o.options["compiler"] === "lljs") {
+    if (o.compiler === "lljs") {
       if (variableDeclarators.length > 0) {
         variableDeclaration = new VariableDeclaration("extern", variableDeclarators);
         this.body.unshift(variableDeclaration);

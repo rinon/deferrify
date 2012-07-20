@@ -1490,9 +1490,7 @@
   function compile(node, name, _logger, options) {
     // The logger is closed over by all the functions.
     logger = _logger;
-    var o = { name: name, logger: _logger, warn: warningOptions(options), jsInput: options['js-input'], memcheck: options.memcheck };
-
-    options.compiler = "lljs";
+    var o = { name: name, logger: _logger, warn: warningOptions(options), jsInput: options['js-input'], memcheck: options.memcheck, compiler: "lljs" };
 
     jsFrontend.initialize(o);
 
