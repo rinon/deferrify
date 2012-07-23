@@ -40,24 +40,39 @@
     });
   }
 
+  function check(condition, message, warn) {
+    if (!condition) {
+      if (warn) {
+        logger.warn(message);
+      } else {
+        logger.error(message);
+
+        var e = new Error(message);
+        var loc = logger.context[logger.context.length - 1].loc;
+        if (loc) {
+          e.lineNumber = loc.start.line;
+        }
+        e.logged = true;
+        throw e;
+      }
+    }
+  }
 
   function FunctionNode(name) {
     this.name = name;
-    this.called = false;
     this.visited = false;
-    this.children = Object.create(null);
+    this.calls = [];
   }
 
   var prefix = "";
   function traverseCallGraph(callGraph) {
     print(prefix + callGraph.name);
-    print(prefix + "called? " + callGraph.called);
+    print(prefix + " called? " + callGraph.called);
     prefix += "  ";
     for (var name in callGraph.children) {
-      if (callGraph.children[name].called) {
-        traverseCallGraph(callGraph.children[name]);
-      }
+      traverseCallGraph(callGraph.children[name]);
     }
+    prefix = prefix.substr(2);
   }
 
   /**
@@ -66,26 +81,43 @@
   Node.prototype.callGraph = T.makePass("callGraph", "callGraphNode");
 
   Program.prototype.callGraph = function (o) {
-    o.callGraph = new FunctionNode("Program");
-    o.callGraph.called = true;
-    o.called = [];
+    o = extend(o);
+    o.scope = this.frame;
+    var callGraph = new FunctionNode("Program");
+    callGraph.called = true;
+    o.scope.callGraph = callGraph;
 
     this.body = passOverList(this.body, 'callGraph', o);
 
-    var callQueue = o.called;
-    var callGraph = o.callGraph;
+    var callQueue = [];
+    for (var i=0, l=callGraph.calls.length; i<l; i++) {
+      callQueue.push({
+        scope: o.scope,
+        name: callGraph.calls[i]
+      });
+    }
 
     while (callQueue.length > 0) {
-      var curCall = callQueue.shift();
+      var cur = callQueue.shift();
+      var curVar = cur.scope.getVariable(cur.name);
+      if (curVar.innerScope.callGraph.visited) {
+        continue;
+      }
+      var curCall = curVar.innerScope.callGraph;
       curCall.visited = true;
-      for (var call in curCall.children) {
-        if (!(call.visited)) {
-          callQueue.push(call);
-        }
+      curVar.called = true;
+      for (var i=0, l=curCall.calls.length; i<l; i++) {
+        callQueue.push({
+          scope: curVar.innerScope,
+          name: curCall.calls[i]
+        });
       }
     }
 
-    traverseCallGraph(o.callGraph);
+
+    //traverseCallGraph(o.callGraph);
+    print(o.scope);
+    print(this);
     print();
 
     return this;
@@ -94,31 +126,48 @@
   CallExpression.prototype.callGraphNode = function (o) {
     if (this.callee instanceof Identifier) {
       var name = this.callee.name;
-      var functionNode;
-      if (typeof o.callGraph.children[name] !== "undefined") {
-        functionNode = new FunctionNode(name);
-        o.callGraph.children[name] = functionNode;
-      } else {
-        functionNode = o.callGraph.children[name];
-      }
-      functionNode.called = true;
-      o.called.push(functionNode);
+
+      var callee = o.scope.getVariable(name);
+      // o.scope.calls.push(name);
+
+      // var functionNode;
+      // if (typeof o.callGraph.children[name] !== "undefined") {
+      //   functionNode = new FunctionNode(name);
+      //   o.callGraph.children[name] = functionNode;
+      // } else {
+      //   functionNode = o.callGraph.children[name];
+      // }
+      // functionNode.called = true;
+      o.scope.callGraph.calls.push(name);
     }
+
+    return this;
   };
 
   FunctionDeclaration.prototype.callGraph = function (o) {
-    var childOpts = extend(o);
     var node = new FunctionNode("");
-    childOpts.callGraph = node;
-    this.body = this.body.lazyParsePass(o);
-    if (typeof o.callGraph.children[this.id.name] === "undefined") {
-      node.name = this.id.name;
-      o.callGraph.children[this.id.name] = node;
-    } else {
-      // ERROR - existing function with the same name
-    }
+    var childOpts = extend(o);
+    childOpts.scope = this.frame;
+    childOpts.scope.callGraph = node;
+    this.body = this.body.callGraph(childOpts);
+
+    node.name = this.id.name;
+    var functionVariable = o.scope.getVariable(this.id.name);
+    functionVariable.innerScope = this.frame;
+    functionVariable.called = false;
+
+    return this;
   };
 
+  FunctionExpression.prototype.callGraph = function (o) {
+    var node = new FunctionNode("anonymous");
+    var childOpts = extend(o);
+    childOpts.scope = this.frame;
+    childOpts.scope.callGraph = node;
+    this.body = this.body.callGraph(childOpts);
+
+    return this;
+  };
 
 }).call(this, typeof exports === "undefined" ? (callGraph = {}) : exports);
 
