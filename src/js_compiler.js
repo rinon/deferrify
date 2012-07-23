@@ -6,6 +6,7 @@
     T = require("./estransform.js");
     Types = require("./types.js");
     LLJS = require("./compiler.js");
+    callGraph = require("./call_graph.js");
   } else {
     util = this.util;
     T = this.estransform;
@@ -16,6 +17,7 @@
     jsFrontend = this.jsFrontend;
     load("./compiler.js");
     LLJS = this.compiler;
+    load("./call_graph.js");
   }
 
   function warningOptions(options) {
@@ -38,6 +40,8 @@
 
     LLJS.initialize(o);
     jsFrontend.initialize(o);
+    lazyParse.initialize(o);
+    callGraph.initialize(o);
 
     // Lift into constructors.
     node = T.lift(node);
@@ -51,6 +55,9 @@
 
     // Pass 2.
     node.scan(o);
+
+    node.callGraph(o);
+    // o now contains global call graph
 
     // Pass 2.5 - include externs for all undeclared global vars
     node.externPass(o);

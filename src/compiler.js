@@ -1498,6 +1498,7 @@
 
     jsFrontend.initialize(o);
     lazyParse.initialize(o);
+    callGraph.initialize(o);
 
     // Lift into constructors.
     node = T.lift(node);
