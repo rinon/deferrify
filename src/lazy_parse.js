@@ -480,7 +480,6 @@
       var oldId = this.right.id;
       this.right.id = null;
       var functionString = escodegen.generate(this.right, {format: {indent: { style: '', base: 0}}});
-      print(this);
       if (functionString.length > o["lazy-minimum"] && !this.right.called) {
         var id = o.scope.freshTemp();
 

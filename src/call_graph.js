@@ -71,12 +71,6 @@
     }
   }
 
-  function FunctionNode(name) {
-    this.name = name;
-    this.visited = false;
-    this.calls = [];
-  }
-
   var prefix = "";
   function traverseCallGraph(callGraph) {
     print(prefix + callGraph.name);
@@ -88,8 +82,11 @@
     prefix = prefix.substr(2);
   }
 
-  function SymbolTableEntry(obj) {
-    this.entry = obj;
+  function DummyFunction() {
+    this.realFunction = null;
+    this.methods = Object.create(null);
+    this.calls = [];
+    this.called = false;
   }
 
   /**
@@ -104,12 +101,15 @@
     }
     resolved[this.name] = true;
     var symbol = symbolTable[this.name];
-    if (symbol === undefined)
-      return [];
-    else
+    if (symbol === undefined) {
+      symbolTable[this.name] = new DummyFunction();
+      return [symbolTable[this.name]];
+    } else {
       return symbol.resolveSymbol(symbolTable, thisMethods);
+    }
   };
 
+  DummyFunction.prototype.resolveSymbol =
   ThisExpression.prototype.resolveSymbol =
   FunctionDeclaration.prototype.resolveSymbol =
   FunctionExpression.prototype.resolveSymbol = function(symbolTable, thisMethods) {
@@ -201,6 +201,11 @@
 
     while (callQueue.length > 0) {
       var curCallee = callQueue.shift();
+      if (curCallee instanceof DummyFunction) {
+        if (curCallee.realFunction === null)
+          continue;
+        curCallee = curCallee.realFunction;
+      }
       if (curCallee.visited)
         continue;
       curCallee.visited = true;
@@ -211,7 +216,7 @@
       }
     }
 
-    passOverList(this.body, 'callGraphPrint', o);
+    //passOverList(this.body, 'callGraphPrint', o);
 
     return this;
   };
@@ -219,6 +224,7 @@
   NewExpression.prototype.callGraphNode =
   CallExpression.prototype.callGraphNode = function (o) {
     resolved = Object.create(null);
+    //print(this.callee);
     var callees = this.callee.resolveSymbol(o.symbolTable, o.methods);
 
     if (callees !== null) {
@@ -233,14 +239,24 @@
   FunctionExpression.prototype.callGraph =
   FunctionDeclaration.prototype.callGraph = function (o) {
     if (this.id) {
+      if (o.symbolTable[this.id.name] !== undefined) {
+        var oldEntry = o.symbolTable[this.id.name];
+      }
       o.symbolTable[this.id.name] = this;
     }
 
     var childOpts = extend(o);
     childOpts.scope = this.frame;
-    childOpts.calls = [];
-    childOpts.methods = Object.create(null);
-    childOpts.symbolTable = extend(o.symbolTable);
+    childOpts.symbolTable = util.clone(o.symbolTable);
+    if (oldEntry) {
+      oldEntry.realFunction = this;
+      childOpts.calls = oldEntry.calls;
+      childOpts.methods = oldEntry.methods;
+      this.called = oldEntry.called;
+    } else {
+      childOpts.calls = [];
+      childOpts.methods = Object.create(null);
+    }
     this.body = this.body.callGraph(childOpts);
     if (this.called === undefined) {
       this.called = false;
@@ -248,6 +264,14 @@
 
     this.methods = childOpts.methods;
     this.calls = childOpts.calls;
+
+    // copy out any dummy function entries
+    for (var symbol in childOpts.symbolTable) {
+      if (childOpts.symbolTable[symbol] instanceof DummyFunction &&
+          o.symbolTable[symbol] === undefined) {
+        o.symbolTable[symbol] = childOpts.symbolTable[symbol];
+      }
+    }
 
     return this;
   };
@@ -259,6 +283,17 @@
       if (this.left.object instanceof ThisExpression &&
           this.left.property instanceof Identifier) {
         o.methods[this.left.property.name] = this.right;
+      } else if (this.left.object instanceof MemberExpression &&
+                 this.left.property instanceof Identifier &&
+                 this.left.object.object instanceof Identifier &&
+                 this.left.object.property instanceof Identifier &&
+                 this.left.object.property.name === "prototype") {
+        var baseName = this.left.object.object.name;
+        var base = o.symbolTable[baseName];
+        if (base === undefined) {
+          base = o.symbolTable[baseName] = new DummyFunction();
+        }
+        base.methods[this.left.property.name] = this.right;
       }
     }
 
