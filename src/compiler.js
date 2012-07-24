@@ -1494,11 +1494,15 @@
   function compile(node, name, _logger, options) {
     // The logger is closed over by all the functions.
     logger = _logger;
-    var o = { name: name, logger: _logger, warn: warningOptions(options), jsInput: options['js-input'], memcheck: options.memcheck, compiler: "lljs", "lazy-minimum": options["lazy-minimum"] };
+    var o = { name: name,
+              logger: _logger,
+              warn: warningOptions(options),
+              jsInput: options['js-input'],
+              memcheck: options.memcheck,
+              compiler: "lljs"};
 
     jsFrontend.initialize(o);
-    lazyParse.initialize(o);
-    callGraph.initialize(o);
+    lazyParse.initialize(o, options);
 
     // Lift into constructors.
     node = T.lift(node);
