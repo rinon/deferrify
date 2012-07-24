@@ -190,6 +190,7 @@
     o = extend(o);
     o.scope = this.frame;
     o.calls = [];
+    o.methods = Object.create(null);
     o.symbolTable = Object.create(null);
 
     this.body = passOverList(this.body, 'callGraph', o);
@@ -248,7 +249,7 @@
     var childOpts = extend(o);
     childOpts.scope = this.frame;
     childOpts.symbolTable = util.clone(o.symbolTable);
-    if (oldEntry) {
+    if (oldEntry && oldEntry instanceof DummyFunction) {
       oldEntry.realFunction = this;
       childOpts.calls = oldEntry.calls;
       childOpts.methods = oldEntry.methods;
@@ -290,10 +291,20 @@
                  this.left.object.property.name === "prototype") {
         var baseName = this.left.object.object.name;
         var base = o.symbolTable[baseName];
+        var bases;
         if (base === undefined) {
-          base = o.symbolTable[baseName] = new DummyFunction();
+          o.symbolTable[baseName] = new DummyFunction();
+          bases = [o.symbolTable[baseName]];
+        } else {
+          bases = base.resolveSymbol(o.symbolTable, o.methods);
         }
-        base.methods[this.left.property.name] = this.right;
+        if (bases === []) {
+          o.symbolTable[baseName] = new DummyFunction();
+          bases = [o.symbolTable[baseName]];
+        }
+        for (var i=0; i < bases.length; i++) {
+          bases[i].methods[this.left.property.name] = this.right;
+        }
       }
     }
 
