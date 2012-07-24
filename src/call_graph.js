@@ -19,6 +19,19 @@
   const FunctionExpression = T.FunctionExpression;
   const CallExpression = T.CallExpression;
   const Identifier = T.Identifier;
+  const AssignmentExpression = T.AssignmentExpression;
+  const MemberExpression = T.MemberExpression;
+  const NewExpression = T.NewExpression;
+  const ThisExpression = T.ThisExpression;
+  const BinaryExpression = T.BinaryExpression;
+  const LogicalExpression = T.LogicalExpression;
+  const Literal = T.Literal;
+  const ObjectExpression = T.ObjectExpression;
+  const ArrayExpression = T.ArrayExpression;
+  const SequenceExpression = T.SequenceExpression;
+  const UnaryExpression = T.UnaryExpression;
+  const UpdateExpression = T.UpdateExpression;
+  const ConditionalExpression = T.ConditionalExpression;
 
   /**
    * Import utilities.
@@ -75,96 +88,194 @@
     prefix = prefix.substr(2);
   }
 
+  function SymbolTableEntry(obj) {
+    this.entry = obj;
+  }
+
   /**
    * Begin analysis pass
    */
+
+  var resolved;
+
+  Identifier.prototype.resolveSymbol = function(symbolTable, thisMethods) {
+    if (resolved[this.name]) {
+      return []; // circular
+    }
+    resolved[this.name] = true;
+    var symbol = symbolTable[this.name];
+    if (symbol === undefined)
+      return [];
+    else
+      return symbol.resolveSymbol(symbolTable, thisMethods);
+  };
+
+  ThisExpression.prototype.resolveSymbol =
+  FunctionDeclaration.prototype.resolveSymbol =
+  FunctionExpression.prototype.resolveSymbol = function(symbolTable, thisMethods) {
+    return [this];
+  };
+
+  MemberExpression.prototype.resolveSymbol = function(symbolTable, thisMethods) {
+    if (this.object instanceof ThisExpression) {
+      var symbol = thisMethods[name];
+      if (symbol === undefined)
+        return [];
+      else
+        return symbol.resolveSymbol(symbolTable, thisMethods);
+    }
+
+    var objects = this.object.resolveSymbol(symbolTable, thisMethods);
+    if (objects === [])
+      return [];
+
+    var name = this.property.name;
+
+    return objects.reduce(function (results, object) {
+      if (object.methods === undefined)
+        return results;
+      var symbol = object.methods[name];
+      if (symbol === undefined)
+        return results;
+      else
+        return results.concat(symbol.resolveSymbol(symbolTable, thisMethods));
+    }, []);
+  };
+
+  NewExpression.prototype.resolveSymbol = function(symbolTable, thisMethods) {
+    return this.callee.resolveSymbol(symbolTable, thisMethods);
+  };
+
+  CallExpression.prototype.resolveSymbol = function(symbolTable, thisMethods) {
+    var symbols = this.callee.resolveSymbol(symbolTable, thisMethods);
+    if (symbols === [])
+      return [];
+
+    return symbols.reduce(function (results, symbol) {
+      return results.concat(symbol.resolveSymbol(symbolTable, thisMethods));
+    }, []);
+  };
+
+  LogicalExpression.prototype.resolveSymbol =
+  BinaryExpression.prototype.resolveSymbol = function(symbolTable, thisMethods) {
+    return this.left.resolveSymbol(symbolTable, thisMethods).concat(this.right.resolveSymbol(symbolTable, thisMethods));
+  };
+
+  UnaryExpression.prototype.resolveSymbol = function(symbolTable, thisMethods) {
+    return this.argument.resolveSymbol(symbolTable, thisMethods);
+  };
+
+  AssignmentExpression.prototype.resolveSymbol = function(symbolTable, thisMethods) {
+    return this.right.resolveSymbol(symbolTable, thisMethods);
+  };
+
+  ConditionalExpression.prototype.resolveSymbol = function(symbolTable, thisMethods) {
+    return this.test.resolveSymbol(symbolTable, thisMethods).concat(
+      this.consequent.resolveSymbol(symbolTable, thisMethods),
+      this.alternate.resolveSymbol(symbolTable, thisMethods)
+    );
+  };
+
+  ArrayExpression.prototype.resolveSymbol =
+  SequenceExpression.prototype.resolveSymbol =
+  UpdateExpression.prototype.resolveSymbol =
+  ObjectExpression.prototype.resolveSymbol =
+  Literal.prototype.resolveSymbol = function(symbolTable, thisMethods) {
+    return [];
+  };
+
   Node.prototype.callGraph = T.makePass("callGraph", "callGraphNode");
 
   Program.prototype.callGraph = function (o) {
     o = extend(o);
     o.scope = this.frame;
-    var callGraph = new FunctionNode("Program");
-    callGraph.called = true;
-    o.scope.callGraph = callGraph;
+    o.calls = [];
+    o.symbolTable = Object.create(null);
 
     this.body = passOverList(this.body, 'callGraph', o);
 
     var callQueue = [];
-    for (var i=0, l=callGraph.calls.length; i<l; i++) {
-      callQueue.push({
-        scope: o.scope,
-        name: callGraph.calls[i]
-      });
+    for (var i=0, l=o.calls.length; i<l; i++) {
+      callQueue.push(o.calls[i]);
     }
 
     while (callQueue.length > 0) {
-      var cur = callQueue.shift();
-      var curVar = cur.scope.getVariable(cur.name);
-      if (curVar.innerScope.callGraph.visited) {
+      var curCallee = callQueue.shift();
+      if (curCallee.visited)
         continue;
-      }
-      var curCall = curVar.innerScope.callGraph;
-      curCall.visited = true;
-      curVar.called = true;
-      for (var i=0, l=curCall.calls.length; i<l; i++) {
-        callQueue.push({
-          scope: curVar.innerScope,
-          name: curCall.calls[i]
-        });
+      curCallee.visited = true;
+      curCallee.called = true;
+
+      for (var i=0, l=curCallee.calls.length; i<l; i++) {
+        callQueue.push(curCallee.calls[i]);
       }
     }
 
-
-    //traverseCallGraph(o.callGraph);
-    print(o.scope);
-    print(this);
-    print();
+    passOverList(this.body, 'callGraphPrint', o);
 
     return this;
   };
 
+  NewExpression.prototype.callGraphNode =
   CallExpression.prototype.callGraphNode = function (o) {
-    if (this.callee instanceof Identifier) {
-      var name = this.callee.name;
+    resolved = Object.create(null);
+    var callees = this.callee.resolveSymbol(o.symbolTable, o.methods);
 
-      var callee = o.scope.getVariable(name);
-      // o.scope.calls.push(name);
-
-      // var functionNode;
-      // if (typeof o.callGraph.children[name] !== "undefined") {
-      //   functionNode = new FunctionNode(name);
-      //   o.callGraph.children[name] = functionNode;
-      // } else {
-      //   functionNode = o.callGraph.children[name];
-      // }
-      // functionNode.called = true;
-      o.scope.callGraph.calls.push(name);
+    if (callees !== null) {
+      for (var i=0; i < callees.length; i++) {
+        o.calls.push(callees[i]);
+      }
     }
 
     return this;
   };
 
+  FunctionExpression.prototype.callGraph =
   FunctionDeclaration.prototype.callGraph = function (o) {
-    var node = new FunctionNode("");
+    if (this.id) {
+      o.symbolTable[this.id.name] = this;
+    }
+
     var childOpts = extend(o);
     childOpts.scope = this.frame;
-    childOpts.scope.callGraph = node;
+    childOpts.calls = [];
+    childOpts.methods = Object.create(null);
+    childOpts.symbolTable = extend(o.symbolTable);
     this.body = this.body.callGraph(childOpts);
+    if (this.called === undefined) {
+      this.called = false;
+    }
 
-    node.name = this.id.name;
-    var functionVariable = o.scope.getVariable(this.id.name);
-    functionVariable.innerScope = this.frame;
-    functionVariable.called = false;
+    this.methods = childOpts.methods;
+    this.calls = childOpts.calls;
 
     return this;
   };
 
-  FunctionExpression.prototype.callGraph = function (o) {
-    var node = new FunctionNode("anonymous");
-    var childOpts = extend(o);
-    childOpts.scope = this.frame;
-    childOpts.scope.callGraph = node;
-    this.body = this.body.callGraph(childOpts);
+  AssignmentExpression.prototype.callGraphNode = function (o) {
+    if (this.left instanceof Identifier) {
+      o.symbolTable[this.left.name] = this.right;
+    } else if (this.left instanceof MemberExpression) {
+      if (this.left.object instanceof ThisExpression &&
+          this.left.property instanceof Identifier) {
+        o.methods[this.left.property.name] = this.right;
+      }
+    }
+
+    return this;
+  };
+
+
+  /*
+   * Print details
+   */
+  Node.prototype.callGraphPrint = T.makePass("callGraphPrint", "callGraphPrintNode");
+
+  FunctionExpression.prototype.callGraphPrintNode =
+  FunctionDeclaration.prototype.callGraphPrintNode = function (o) {
+    print((this.id ? this.id.name : "anonymous")
+          + ": "
+          + (this.called ? "called" : "not called"));
 
     return this;
   };
