@@ -64,7 +64,8 @@
       ["o",           "output",       "",    "Output file name"],
       ["h",           "help",         false, "Print this message"],
       ["w",           "nowarn",       false, "Inhibit all warning messages"],
-      ["m",           "minify",       false, "Do rudimentary minification"]
+      ["m",           "minify",       false, "Do rudimentary minification"],
+      ["c",           "call-graph",   false, "Use call graph information for lazy parsing thresholding"]
     ]);
 
     var p = optparser.parse(argv);

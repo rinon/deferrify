@@ -1,5 +1,5 @@
 (function (exports) {
-  var util, jsFrontend, lazyParse, T, Types, LLJS;
+  var util, jsFrontend, lazyParse, T, Types, LLJS, callGraph;
   if (typeof process !== "undefined") {
     util = require("./util.js");
     jsFrontend = require("./js_frontend.js");
@@ -36,11 +36,17 @@
     // The logger is closed over by all the functions.
     logger = _logger;
 
-    var o = { name: name, logger: _logger, warn: warningOptions(options), jsInput: true, memcheck: options.memcheck, compiler: "js", "lazy-minimum": options["lazy-minimum"] };
+    var o = { name: name,
+              logger: _logger,
+              warn: warningOptions(options),
+              jsInput: true,
+              memcheck: options.memcheck,
+              compiler: "js"
+            };
 
     LLJS.initialize(o);
     jsFrontend.initialize(o);
-    lazyParse.initialize(o);
+    lazyParse.initialize(o, options);
     callGraph.initialize(o);
 
     // Lift into constructors.
@@ -56,7 +62,9 @@
     // Pass 2.
     node.scan(o);
 
-    node.callGraph(o);
+    if (options["call-graph"]) {
+      node.callGraph(o);
+    }
     // o now contains global call graph
 
     // Pass 2.5 - include externs for all undeclared global vars
