@@ -483,7 +483,7 @@ function compileExample(ex) {
     }
     var source = this.getValue();
     source = 'extern trace;\n' + source;
-    result.innerHTML = LJC.compile(source, { bare: true, memcheck: false, filename: name });
+    result.innerHTML = LJC.compile(name, name, source, { bare: true, memcheck: false, "js-input": false });
   } catch (x) {
     result.innerHTML = x.message;
     if (x.lineNumber) {
