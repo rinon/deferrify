@@ -3,7 +3,6 @@
   if (typeof process !== "undefined") {
     util = require("./util.js");
     jsFrontend = require("./js_frontend.js");
-    lazyParse = require("./lazy_parse.js");
     T = require("./estransform.js");
     Types = require("./types.js");
     LLJS = require("./compiler.js");
@@ -12,8 +11,6 @@
     T = this.estransform;
     load("./js_frontend.js");
     jsFrontend = this.jsFrontend;
-    load("./lazy_parse.js");
-    lazyParse = this.lazyParse;
     load("./types.js");
     Types = this.Types;
     load("./compiler.js");
@@ -40,7 +37,6 @@
 
     LLJS.initialize(o);
     jsFrontend.initialize(o);
-    lazyParse.initialize(o);
 
     // Lift into constructors.
     node = T.lift(node);
