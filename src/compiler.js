@@ -12,6 +12,7 @@
     load("./types.js");
     Types = this.Types;
     load("./scope.js");
+    S = scope;
     load("./js_frontend.js");
   } else {
     util = this.util;

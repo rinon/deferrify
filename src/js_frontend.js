@@ -1,15 +1,15 @@
 (function (exports) {
-
+  var util, T, S, Types;
   if (typeof process !== "undefined") {
-    var util = require("./util.js");
-    var T = require("./estransform.js");
-    var S = require("./scope.js");
-    var Types = require("./types.js");
+    util = require("./util.js");
+    T = require("./estransform.js");
+    S = require("./scope.js");
+    Types = require("./types.js");
   } else {
-    var util = this.util;
-    var T = this.estransform;
-    var S = this.S;
-    var Types = this.Types;
+    util = this.util;
+    T = this.estransform;
+    S = this.scope;
+    Types = this.Types;
   }
 
   /**
