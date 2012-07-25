@@ -9,11 +9,11 @@
   } else if (typeof snarf !== "undefined") {
     util = this.util;
     T = estransform;
-    load("./types.js");
     Types = this.Types;
     load("./scope.js");
     S = scope;
     load("./js_frontend.js");
+    jsFrontend = this.jsFrontend;
   } else {
     util = this.util;
     T = estransform;

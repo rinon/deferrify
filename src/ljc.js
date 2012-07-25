@@ -36,6 +36,7 @@
     quit = process.exit;
   } else if (mode === JS_SHELL) {
     load("./estransform.js");
+    load("./types.js");
     load("./util.js");
     load("./esprima.js");
     load("./escodegen.js");
