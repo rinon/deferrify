@@ -154,7 +154,7 @@
     for (name in o.variables) {
       // Do not insert a declaration if we know name should be a predefined global
       if (!externs[name] && !o.functions[name]) {
-        variableDeclarators.push(new VariableDeclarator(o.variables[name], null, null, null, o.variables[name].loc));
+        variableDeclarators.push(new VariableDeclarator(o.variables[name], null, null, null, null, o.variables[name].loc));
       }
     }
 
@@ -210,7 +210,7 @@
     var variableDeclaration, variableDeclarators = [];
     for (name in o.variables) {
       if (!inParams(name, this.params) && !o.functions[name]) {
-        variableDeclarators.push(new VariableDeclarator(o.variables[name], null, null, null, o.variables[name].loc));
+        variableDeclarators.push(new VariableDeclarator(o.variables[name], null, null, null, null, o.variables[name].loc));
       }
     }
 
