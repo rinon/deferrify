@@ -58,6 +58,10 @@
   };
 
 
+  function stringifyNode(node) {
+    return escodegen.generate(node, {format: {indent: { style: '', base: 0}}});
+  }
+
   /**
    * Begin rewrite pass
    */
@@ -425,7 +429,7 @@
 
 
     if (this instanceof FunctionDeclaration) {
-      var functionString = escodegen.generate(this, {format: {indent: { style: '', base: 0}}});
+      var functionString = stringifyNode(this);
       if (functionString.length > minReplaceLength && (!callGraphAvailable || !this.called)) {
         if (this.id instanceof Identifier && this.params) {
           for (var i = 0, l = this.params.length; i < l; i++) {
@@ -442,7 +446,7 @@
           this.body = stub(this.id, id.name, "stub", this.params);
           o.laziness.needsStub = true;
         } else {
-          functionString = escodegen.generate(this.body, {format: {indent: { style: '', base: 0}}});
+          functionString = stringifyNode(this.body);
           o.laziness.functionStrings[id.name] = functionString;
           this.body = stub(this.id, id.name, "stubF", this.params);
           o.laziness.needsStubF = true;
@@ -485,7 +489,7 @@
     if (this.right instanceof FunctionExpression) {
       var oldId = this.right.id;
       this.right.id = null;
-      var functionString = escodegen.generate(this.right, {format: {indent: { style: '', base: 0}}});
+      var functionString = stringifyNode(this.right);
       if (functionString.length > minReplaceLength && (!callGraphAvailable || !this.right.called)) {
         var id = o.scope.freshTemp();
 
@@ -504,7 +508,7 @@
           this.right.body = stub(this.left, id.name, "stub", this.right.params);
           o.laziness.needsStub = true;
         } else {
-          o.laziness.functionStrings[id.name] = escodegen.generate(this.right.body, {format: {indent: { style: '', base: 0}}});
+          o.laziness.functionStrings[id.name] = stringifyNode(this.right.body);
           this.right.body = stub(this.left, id.name, "stubF", this.right.params);
           o.laziness.needsStubF = true;
         }
