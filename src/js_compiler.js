@@ -7,6 +7,7 @@
     Types = require("./types.js");
     LLJS = require("./compiler.js");
     callGraph = require("./call_graph.js");
+    lazyParse = require("./lazy_parse.js");
   } else {
     util = this.util;
     T = this.estransform;
@@ -18,6 +19,9 @@
     load("./compiler.js");
     LLJS = this.compiler;
     load("./call_graph.js");
+    callGraph = this.callGraph;
+    load("./lazy_parse.js");
+    lazyParse = this.lazyParse;
   }
 
   function warningOptions(options) {

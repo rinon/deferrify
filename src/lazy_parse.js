@@ -1,15 +1,17 @@
 (function (exports) {
-
+  var util, T, escodegen, Types, uglify;
   if (typeof process !== "undefined") {
-    var util = require("./util.js");
-    var T = require("./estransform.js");
-    var escodegen = require("./escodegen.js");
-    var Types = require("./types.js");
+    util = require("./util.js");
+    T = require("./estransform.js");
+    escodegen = require("./escodegen.js");
+    Types = require("./types.js");
+    uglify = require("uglify-js");
   } else {
-    var util = this.util;
-    var T = estransform;
-    var escodegen = this.escodegen;
-    var Types = this.Types;
+    util = this.util;
+    T = estransform;
+    escodegen = this.escodegen;
+    Types = this.Types;
+    uglify = load("./uglify-js.js");
   }
 
   /**
