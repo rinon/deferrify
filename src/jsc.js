@@ -65,7 +65,9 @@
       ["h",           "help",         false, "Print this message"],
       ["w",           "nowarn",       false, "Inhibit all warning messages"],
       ["m",           "minify",       false, "Do rudimentary minification"],
-      ["c",           "call-graph",   false, "Use call graph information for lazy parsing thresholding"]
+      ["c",           "call-graph",   false, "Use call graph information for lazy parsing thresholding"],
+      ["i",           "profile-calls", false, "Add instrumentation code to profile which functions get called"],
+      ["p",           "read-profile", "",    "Read profile information from filename"]
     ]);
 
     var p = optparser.parse(argv);

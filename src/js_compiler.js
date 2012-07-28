@@ -74,6 +74,10 @@
     // Pass 2.5 - include externs for all undeclared global vars
     node.externPass(o);
 
+    if (options["profile-calls"]) {
+      node.instrumentCalls(o);
+    }
+
     if (options["lazy-minimum"] !== "") {
       node.lazyParsePass(o);
     }

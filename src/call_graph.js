@@ -32,6 +32,10 @@
   const UnaryExpression = T.UnaryExpression;
   const UpdateExpression = T.UpdateExpression;
   const ConditionalExpression = T.ConditionalExpression;
+  const BlockStatement = T.BlockStatement;
+  const ExpressionStatement = T.ExpressionStatement;
+  const VariableDeclaration = T.VariableDeclaration;
+  const VariableDeclarator = T.VariableDeclarator;
 
   /**
    * Import utilities.
@@ -325,6 +329,77 @@
 
     return this;
   };
+
+
+  /*
+   * Call instrumentation pass
+   */
+
+  var id = 0;
+  var globalArrayId = new Identifier("__called");
+  function instrumentationCode() {
+    return new ExpressionStatement(
+      new AssignmentExpression(
+        new MemberExpression(
+          globalArrayId,
+          new Literal(id++),
+          true
+        ),
+        "=",
+        new Identifier("true")
+      )
+    );
+  }
+
+  var epilogue = 'var outStr = "[";\
+for (var i=0,l=__called.length-1; i<l; i++) {\
+  outStr += __called[i] + ",";\
+}\
+outStr += __called[__called.length-1] + "]";\
+\
+if (typeof process != "undefined") {\
+  var fs = require("fs");\
+  fs.writeFileSync("calls.profile", outStr);\
+} else if (typeof window !== "undefined") {\
+  document.open("data:text/plain;charset=utf-8," + outStr);\
+}';  
+
+  Node.prototype.instrumentCalls = T.makePass("instrumentCalls", "instrumentCallNode");
+
+  Program.prototype.instrumentCallNode = function (o) {
+    this.body.unshift(new VariableDeclaration(
+      "var", [
+        new VariableDeclarator(
+          globalArrayId,
+          new NewExpression(
+            new Identifier("Uint8Array"),
+            [new Literal(id)]
+          )
+        )
+      ]));
+
+    this.body.push(new ExpressionStatement(
+      new CallExpression(
+        new Identifier("eval"),
+        [new Literal(epilogue)]
+      )
+    ));
+
+    return this;
+  };
+
+  FunctionExpression.prototype.instrumentCallNode = 
+  FunctionDeclaration.prototype.instrumentCallNode = function (o) {
+    var instrumentation = instrumentationCode();
+    if (this.body instanceof BlockStatement) {
+      this.body.body.unshift(instrumentation);
+    } else {
+      this.body = new BlockStatement([instrumentation, this.body]);
+    }
+
+    return this;
+  };
+  
 
 }).call(this, typeof exports === "undefined" ? (callGraph = {}) : exports);
 

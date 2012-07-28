@@ -6,6 +6,8 @@
     escodegen = require("./escodegen.js");
     Types = require("./types.js");
     uglify = require("uglify-js");
+
+    snarf = require('fs').readFileSync;
   } else {
     util = this.util;
     T = estransform;
@@ -47,6 +49,7 @@
   var logger;
   var minReplaceLength;
   var callGraphAvailable;
+  var callProfiling;
 
   exports.initialize = function (o, cmdLineOpts) {
     logger = o.logger;
@@ -57,6 +60,11 @@
     }
 
     callGraphAvailable = cmdLineOpts["call-graph"];
+
+    if (cmdLineOpts["read-profile"] !== "") {
+      var profileStr = snarf(cmdLineOpts["read-profile"]);
+      callProfiling = new Uint8Array(JSON.parse(profileStr));
+    }
   };
 
 
@@ -74,6 +82,12 @@
   /**
    * Begin rewrite pass
    */
+
+  function shouldLazify(functionNode, length) {
+    return (length > minReplaceLength &&
+            (!callGraphAvailable || !functionNode.called) &&
+            (typeof callProfiling === "undefined" || !callProfiling[functionNode.idNumber]));
+  }
 
   function Laziness() {
     this.functionStrings = Object.create(null);
@@ -404,19 +418,18 @@
   };
 
   function prepend(newStatement, body) {
-    if (body instanceof BlockStatement) {
-      body.body.unshift(newStatement);
-    } else {
-      body = new BlockStatement([newStatement, this.body]);
-    }
   }
 
+  var curId = 0;
   FunctionExpression.prototype.lazyParsePass = 
   FunctionDeclaration.prototype.lazyParsePass = function (o) {
     var childOpts = extend(o);
     childOpts.scope = this.frame;
     childOpts.laziness = new Laziness();
     this.body = this.body.lazyParsePass(childOpts);
+    this.idNumber = curId++; // NOTE: this is AFTER parsing children
+                             // (as is the post-order traversal in
+                             // callGraph)
 
     var strId, strDeclaration;
     for (var name in childOpts.laziness.functionStrings) {
@@ -426,6 +439,11 @@
         [new VariableDeclarator(strId, new Literal(childOpts.laziness.functionStrings[name]), undefined)]
       );
       prepend(strDeclaration, this.body);
+      if (this.body instanceof BlockStatement) {
+        this.body.body.unshift(strDeclaration);
+      } else {
+        this.body = new BlockStatement([strDeclaration, this.body]);
+      }
     }
 
     if (childOpts.laziness.needsStub) {
@@ -439,7 +457,7 @@
 
     if (this instanceof FunctionDeclaration) {
       var functionString = stringifyNode(this);
-      if (functionString.length > minReplaceLength && (!callGraphAvailable || !this.called)) {
+      if (shouldLazify(this, functionString.length)) {
         if (this.id instanceof Identifier && this.params) {
           for (var i = 0, l = this.params.length; i < l; i++) {
             var param = this.params[i];
@@ -499,7 +517,7 @@
       var oldId = this.right.id;
       this.right.id = null;
       var functionString = stringifyNode(this.right);
-      if (functionString.length > minReplaceLength && (!callGraphAvailable || !this.right.called)) {
+      if (shouldLazify(this.right, functionString.length)) {
         var id = o.scope.freshTemp();
 
         if (this.left instanceof Identifier && this.params) {
