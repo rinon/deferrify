@@ -417,9 +417,6 @@
     return this;
   };
 
-  function prepend(newStatement, body) {
-  }
-
   var curId = 0;
   FunctionExpression.prototype.lazyParsePass = 
   FunctionDeclaration.prototype.lazyParsePass = function (o) {
@@ -438,7 +435,6 @@
         "var",
         [new VariableDeclarator(strId, new Literal(childOpts.laziness.functionStrings[name]), undefined)]
       );
-      prepend(strDeclaration, this.body);
       if (this.body instanceof BlockStatement) {
         this.body.body.unshift(strDeclaration);
       } else {
@@ -446,11 +442,22 @@
       }
     }
 
+    var stub;
     if (childOpts.laziness.needsStub) {
-      prepend(stubConstructor(o.scope.freshTemp(), o.scope.freshTemp()), this.body);
+      stub = stubConstructor(o.scope.freshTemp(), o.scope.freshTemp());
+      if (this.body instanceof BlockStatement) {
+        this.body.body.unshift(stub);
+      } else {
+        this.body = new BlockStatement([stub, this.body]);
+      }
     }
     if (childOpts.laziness.needsStubF) {
-      prepend(stubFConstructor(o.scope.freshTemp(), o.scope.freshTemp(), o.scope.freshTemp()), this.body);
+      stub = stubFConstructor(o.scope.freshTemp(), o.scope.freshTemp(), o.scope.freshTemp());
+      if (this.body instanceof BlockStatement) {
+        this.body.body.unshift(stub);
+      } else {
+        this.body = new BlockStatement([stub, this.body]);
+      }
     }
 
 
