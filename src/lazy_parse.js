@@ -61,7 +61,14 @@
 
 
   function stringifyNode(node) {
-    return escodegen.generate(node, {format: {indent: { style: '', base: 0}}});
+    var s = escodegen.generate(node, {format: {indent: { style: '', base: 0}}});
+    if (node instanceof BlockStatement) {
+      return uglify('(function()' + s + ')')
+        .replace(/^.*?\{/, '').replace(/\}\)$/, '');
+    } else {
+      return uglify('(' + s + ')')
+        .replace(/^\(/, '').replace(/\)$/, '');
+    }
   }
 
   /**
