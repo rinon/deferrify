@@ -442,21 +442,21 @@
       }
     }
 
-    var stub;
+    var stubNode;
     if (childOpts.laziness.needsStub) {
-      stub = stubConstructor(o.scope.freshTemp(), o.scope.freshTemp());
+      stubNode = stubConstructor(o.scope.freshTemp(), o.scope.freshTemp());
       if (this.body instanceof BlockStatement) {
-        this.body.body.unshift(stub);
+        this.body.body.unshift(stubNode);
       } else {
-        this.body = new BlockStatement([stub, this.body]);
+        this.body = new BlockStatement([stubNode, this.body]);
       }
     }
     if (childOpts.laziness.needsStubF) {
-      stub = stubFConstructor(o.scope.freshTemp(), o.scope.freshTemp(), o.scope.freshTemp());
+      stubNode = stubFConstructor(o.scope.freshTemp(), o.scope.freshTemp(), o.scope.freshTemp());
       if (this.body instanceof BlockStatement) {
-        this.body.body.unshift(stub);
+        this.body.body.unshift(stubNode);
       } else {
-        this.body = new BlockStatement([stub, this.body]);
+        this.body = new BlockStatement([stubNode, this.body]);
       }
     }
 
