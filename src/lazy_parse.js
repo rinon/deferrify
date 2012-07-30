@@ -280,13 +280,21 @@
   }
         
 
-  function stub(id, strName, stubName, thisId) {
+  function stub(id, strName, stubName, thisId, params) {
     var tempId = new Identifier("t");
     var strId = new Identifier(strName);
 
     var stubParams = [strId, id];
 
-    if (typeof thisId === "undefined") {
+    if (stubName === "stubF") {
+      var paramArray = [];
+      for (var i = 0, l = params.length; i < l; i++) {
+        paramArray.push(new Literal(params[i].name));
+      }
+      stubParams.push(new ArrayExpression(paramArray));
+    }
+
+    if (!thisId) {
       thisId = new Identifier("this");
     }
 
@@ -422,7 +430,7 @@
         } else {
           functionString = stringifyNode(this.body);
           o.laziness.functionStrings[id.name] = functionString;
-          this.body = stub(this.id, id.name, "stubF");
+          this.body = stub(this.id, id.name, "stubF", null, this.params);
           o.laziness.needsStubF = true;
         }
 
@@ -468,7 +476,9 @@
         var id = o.scope.freshTemp();
 
         var thisId = new Identifier("this");
-        if (this.left instanceof MemberExpression) {
+        if (this.left instanceof MemberExpression &&
+            (!thisId instanceof MemberExpression && thisId.property instanceof Identifier && thisId.property.name == "prototype")) {
+          // We just use this if assigning to a prototype
           thisId = this.left.object;
         }
 
@@ -478,7 +488,7 @@
           o.laziness.needsStub = true;
         } else {
           o.laziness.functionStrings[id.name] = stringifyNode(this.right.body);
-          this.right.body = stub(this.left, id.name, "stubF", thisId);
+          this.right.body = stub(this.left, id.name, "stubF", thisId, this.right.params);
           o.laziness.needsStubF = true;
         }
 
