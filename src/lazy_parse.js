@@ -280,71 +280,17 @@
   }
         
 
-  function stub(id, strName, stubName, params) {
+  function stub(id, strName, stubName, thisId) {
     var tempId = new Identifier("t");
     var strId = new Identifier(strName);
 
     var stubParams = [strId, id];
 
-    if (stubName === "stubF") {
-      var paramArray = [];
-      for (var i = 0, l = params.length; i < l; i++) {
-        paramArray.push(new Literal(params[i].name));
-      }
-      stubParams.push(new ArrayExpression(paramArray));
+    if (typeof thisId === "undefined") {
+      thisId = new Identifier("this");
     }
+
     return new BlockStatement([
-      // new IfStatement(
-      //   new BinaryExpression(
-      //     "===",
-      //     new UnaryExpression(
-      //       "typeof",
-      //       strId
-      //     ),
-      //     new Literal("string")
-      //   ),
-      //   new BlockStatement([
-      //     new VariableDeclaration(
-      //       "var", [
-      //         new VariableDeclarator(
-      //           tempId,
-      //           new CallExpression(
-      //             new Identifier("eval"),
-      //             [strId]
-      //           )
-      //         )
-      //       ]
-      //     ),
-      //     new ExpressionStatement(
-      //       new AssignmentExpression(
-      //         new MemberExpression(
-      //           tempId,
-      //           new Identifier("prototype"),
-      //           false,
-      //           "."
-      //         ),
-      //         "=",
-      //         new MemberExpression(
-      //           id,
-      //           new Identifier("prototype"),
-      //           false,
-      //           "."
-      //         )
-      //       )
-      //     ),
-      //     new ExpressionStatement(
-      //       new AssignmentExpression(
-      //         id, "=",
-      //         tempId
-      //       )
-      //     ),
-      //     new ExpressionStatement(
-      //       new AssignmentExpression(
-      //         strId, "=", new Identifier("null")
-      //       )
-      //     )
-      //   ])
-      // ),
       new ExpressionStatement(
         new AssignmentExpression(
           id, "=",
@@ -363,20 +309,14 @@
         new CallExpression(
           new MemberExpression(
             id,
-            new Identifier("call"),
+            new Identifier("apply"),
             false,
             "."
           ),
-          [new Identifier("this")].concat(params)
+          [thisId, new Identifier("arguments")]
         )
       )
     ]);
-
-
-    // return new CallExpression(
-    //   new Identifier("eval"),
-    //   [new Identifier(strName)]
-    // );
   }
 
   function passOverList(list, passFunction, o) {
@@ -477,12 +417,12 @@
         var id = o.scope.freshTemp();
         if (childOpts.laziness.isClosure) {
           o.laziness.functionStrings[id.name] = '(' + functionString + ')';
-          this.body = stub(this.id, id.name, "stub", this.params);
+          this.body = stub(this.id, id.name, "stub");
           o.laziness.needsStub = true;
         } else {
           functionString = stringifyNode(this.body);
           o.laziness.functionStrings[id.name] = functionString;
-          this.body = stub(this.id, id.name, "stubF", this.params);
+          this.body = stub(this.id, id.name, "stubF");
           o.laziness.needsStubF = true;
         }
 
@@ -527,23 +467,18 @@
       if (shouldLazify(this.right, functionString.length)) {
         var id = o.scope.freshTemp();
 
-        if (this.left instanceof Identifier && this.params) {
-          for (var i = 0, l = this.params.length; i < l; i++) {
-            var param = this.params[i];
-            if (param instanceof Identifier && this.left.name === param.name) {
-              return this;
-            }
-          }
+        var thisId = new Identifier("this");
+        if (this.left instanceof MemberExpression) {
+          thisId = this.left.object;
         }
-        //print('compressing function ' + id.name);
 
         if (this.right.isClosure) {
           o.laziness.functionStrings[id.name] = '(' + functionString + ')';
-          this.right.body = stub(this.left, id.name, "stub", this.right.params);
+          this.right.body = stub(this.left, id.name, "stub", thisId);
           o.laziness.needsStub = true;
         } else {
           o.laziness.functionStrings[id.name] = stringifyNode(this.right.body);
-          this.right.body = stub(this.left, id.name, "stubF", this.right.params);
+          this.right.body = stub(this.left, id.name, "stubF", thisId);
           o.laziness.needsStubF = true;
         }
 
