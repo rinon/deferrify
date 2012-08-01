@@ -97,8 +97,11 @@
     this.needsStubF = false;
   }
 
-  function stubConstructor(strId, funcId) {
-    var tempId = new Identifier("t");
+  function stubConstructor(scope) {
+    var strId = scope.freshTemp();
+    var funcId = scope.freshTemp();
+    var tempId = scope.freshTemp();
+    var iterId = scope.freshTemp();
     return new FunctionDeclaration(
       new Identifier("stub"),
       [strId, funcId],
@@ -145,7 +148,7 @@
               new VariableDeclaration(
                 "var", [
                   new VariableDeclarator(
-                    new Identifier("x")
+                    iterId
                   )
                 ]
               ),
@@ -155,12 +158,12 @@
                   new AssignmentExpression(
                     new MemberExpression(
                       tempId,
-                      new Identifier("x"),
+                      iterId,
                       true
                     ), "=",
                     new MemberExpression(
                       funcId,
-                      new Identifier("x"),
+                      iterId,
                       true
                     )
                   )
@@ -180,8 +183,12 @@
   }
 
 
-  function stubFConstructor(strId, funcId, paramsId) {
-    var tempId = new Identifier("t");
+  function stubFConstructor(scope) {
+    var strId = scope.freshTemp();
+    var funcId = scope.freshTemp();
+    var paramsId = scope.freshTemp();
+    var tempId = scope.freshTemp();
+    var iterId = scope.freshTemp();
     return new FunctionDeclaration(
       new Identifier("stubF"),
       [strId, funcId, paramsId],
@@ -245,7 +252,7 @@
               new VariableDeclaration(
                 "var", [
                   new VariableDeclarator(
-                    new Identifier("x")
+                    iterId
                   )
                 ]
               ),
@@ -255,12 +262,12 @@
                   new AssignmentExpression(
                     new MemberExpression(
                       tempId,
-                      new Identifier("x"),
+                      iterId,
                       true
                     ), "=",
                     new MemberExpression(
                       funcId,
-                      new Identifier("x"),
+                      iterId,
                       true
                     )
                   )
@@ -355,10 +362,10 @@
     }
 
     if (o.laziness.needsStub) {
-      this.body.unshift(stubConstructor(o.scope.freshTemp(), o.scope.freshTemp()));
+      this.body.unshift(stubConstructor(o.scope));
     }
     if (o.laziness.needsStubF) {
-      this.body.unshift(stubFConstructor(o.scope.freshTemp(), o.scope.freshTemp(), o.scope.freshTemp()));
+      this.body.unshift(stubFConstructor(o.scope));
     }
 
 
@@ -392,7 +399,7 @@
 
     var stubNode;
     if (childOpts.laziness.needsStub) {
-      stubNode = stubConstructor(o.scope.freshTemp(), o.scope.freshTemp());
+      stubNode = stubConstructor(o.scope);
       if (this.body instanceof BlockStatement) {
         this.body.body.unshift(stubNode);
       } else {
@@ -400,7 +407,7 @@
       }
     }
     if (childOpts.laziness.needsStubF) {
-      stubNode = stubFConstructor(o.scope.freshTemp(), o.scope.freshTemp(), o.scope.freshTemp());
+      stubNode = stubFConstructor(o.scope);
       if (this.body instanceof BlockStatement) {
         this.body.body.unshift(stubNode);
       } else {
