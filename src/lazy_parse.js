@@ -408,6 +408,9 @@
       }
     }
 
+    if (childOpts.laziness.isClosure) {
+      o.laziness.isClosure = true;
+    }
 
 
     if (this instanceof FunctionDeclaration) {
@@ -448,8 +451,7 @@
       o.laziness.isClosure = true;
       return this;
     }
-    if (typeof o.laziness.isClosure !== "undefined" &&
-        !o.laziness.isClosure &&
+    if (!o.laziness.isClosure &&
         this.kind === "variable") {
       var scope = o.scope;
       var variable = scope.variables[this.name];
