@@ -221,7 +221,7 @@
       }
     }
 
-    //passOverList(this.body, 'callGraphPrint', o);
+    passOverList(this.body, 'callGraphCleanup', o);
 
     return this;
   };
@@ -315,6 +315,20 @@
     return this;
   };
 
+
+  /*
+   * Cleanup
+   */
+  Node.prototype.callGraphCleanup = T.makePass("callGraphCleanup", "callGraphCleanupNode");
+
+  FunctionExpression.prototype.callGraphCleanupNode =
+  FunctionDeclaration.prototype.callGraphCleanupNode = function (o) {
+    delete this.calls;
+    delete this.methods;
+    delete this.visited;
+
+    return this;
+  };
 
   /*
    * Print details
