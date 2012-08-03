@@ -39,6 +39,8 @@
   const SequenceExpression = T.SequenceExpression;
   const ArrayExpression = T.ArrayExpression;
   const ForInStatement = T.ForInStatement;
+  const ThisExpression = T.ThisExpression;
+  const Statement = T.Statement;
 
   /**
    * Import utilities.
@@ -92,6 +94,7 @@
   function Laziness() {
     this.functionStrings = Object.create(null);
     this.functionMap = Object.create(null);
+    this.newVars = [];
     this.isClosure = false;
     this.needsStub = false;
     this.needsStubF = false;
@@ -287,11 +290,10 @@
   }
         
 
-  function stub(id, strName, stubName, thisId, params) {
+  function stub(id, strId, memoId, stubName, thisId, params) {
     var tempId = new Identifier("t");
-    var strId = new Identifier(strName);
 
-    var stubParams = [strId, id];
+    var stubParams = [strId, memoId];
 
     if (stubName === "stubF") {
       var paramArray = [];
@@ -308,7 +310,7 @@
     return new BlockStatement([
       new ExpressionStatement(
         new AssignmentExpression(
-          id, "=",
+          memoId, "=",
           new CallExpression(
             new Identifier(stubName),
             stubParams
@@ -320,10 +322,22 @@
           strId, "=", new Identifier("null")
         )
       ),
+      new IfStatement(
+        new BinaryExpression(
+          "===",
+          id,
+          new ThisExpression()
+        ),
+        new ExpressionStatement(
+          new AssignmentExpression(
+            id, "=", memoId
+          )
+        )
+      ),
       new ReturnStatement(
         new CallExpression(
           new MemberExpression(
-            id,
+            memoId,
             new Identifier("apply"),
             false,
             "."
@@ -368,6 +382,11 @@
       this.body.unshift(stubFConstructor(o.scope));
     }
 
+
+    if (o.laziness.newVars.length > 0) {
+      var decl = new VariableDeclaration("var", o.laziness.newVars);
+      this.body.unshift(decl);
+    }
 
     return this;
   };
@@ -419,6 +438,15 @@
       o.laziness.isClosure = true;
     }
 
+    if (childOpts.laziness.newVars.length > 0) {
+      var decl = new VariableDeclaration("var", childOpts.laziness.newVars);
+      if (this.body instanceof BlockStatement) {
+        this.body.body.unshift(decl);
+      } else {
+        this.body = new BlockStatement([decl, this.body]);
+      }
+    }
+
 
     if (this instanceof FunctionDeclaration) {
       var functionString = stringifyNode(this);
@@ -433,20 +461,33 @@
         }
 
         var id = o.scope.freshTemp();
+        var memo = o.scope.freshTemp();
         if (childOpts.laziness.isClosure) {
           o.laziness.functionStrings[id.name] = '(' + functionString + ')';
-          this.body = stub(this.id, id.name, "stub");
+          this.body = stub(this.id, id, memo, "stub");
           o.laziness.needsStub = true;
         } else {
           functionString = stringifyNode(this.body);
           o.laziness.functionStrings[id.name] = functionString;
-          this.body = stub(this.id, id.name, "stubF", null, this.params);
+          this.body = stub(this.id, id, memo, "stubF", null, this.params);
           o.laziness.needsStubF = true;
         }
 
         o.laziness.functionMap[this.id.name] = {mangled: id.name, isClosure: childOpts.laziness.isClosure, params: this.params};
+
+        o.laziness.newVars.push(new VariableDeclarator(memo));
+
+        return new BlockStatement([
+          this,
+          new ExpressionStatement(
+            new AssignmentExpression(
+              memo, "=", this.id
+            )
+          )
+        ]);
+      } else {
+        return this;
       }
-      return this;
     } else {
       this.isClosure = childOpts.laziness.isClosure;
       return this;
@@ -491,13 +532,14 @@
           thisId = this.left.object;
         }
 
+        var memo = o.scope.freshTemp();
         if (this.right.isClosure) {
           o.laziness.functionStrings[id.name] = '(' + functionString + ')';
-          this.right.body = stub(this.left, id.name, "stub", thisId);
+          this.right.body = stub(this.left, id, memo, "stub", thisId);
           o.laziness.needsStub = true;
         } else {
           o.laziness.functionStrings[id.name] = stringifyNode(this.right.body);
-          this.right.body = stub(this.left, id.name, "stubF", thisId, this.right.params);
+          this.right.body = stub(this.left, id, memo, "stubF", thisId, this.right.params);
           o.laziness.needsStubF = true;
         }
 
@@ -508,6 +550,15 @@
           funcName = id.name;
         }
         o.laziness.functionMap[funcName] = {mangled: id.name, isClosure: this.right.isClosure, params: this.right.params};
+
+        o.laziness.newVars.push(new VariableDeclarator(memo));
+
+        return new SequenceExpression([
+          this,
+          new AssignmentExpression(
+            memo, "=", this.left
+          )
+        ]);
       } else {
         this.right.id = oldId;
       }
