@@ -365,18 +365,27 @@
     );
   }
 
-  var epilogue = 'var outStr = "[";\
-for (var i=0,l=__called.length-1; i<l; i++) {\
-  outStr += __called[i] + ",";\
+  var epilogue = 'if (typeof window !== "undefined") {\
+  var popup = window.open("");\
+  popup.document.body.innerHTML = "<html><body><a href=\\"javascript:console.log(window.opener.showProfile())\\">Show Profile</a></body></html>";\
 }\
-outStr += __called[__called.length-1] + "]";\
+function showProfile() {\
+  var outStr = "[";\
+  for (var i=0,l=__called.length-1; i<l; i++) {\
+    outStr += __called[i] + ",";\
+  }\
+  outStr += __called[__called.length-1] + "]";\
 \
+  if (typeof process != "undefined") {\
+    var fs = require("fs");\
+    fs.writeFileSync("calls.profile", outStr);\
+  } else if (typeof window !== "undefined") {\
+    popup.location = "data:text/plain;charset=utf-8," + outStr;\
+  }\
+}\
 if (typeof process != "undefined") {\
-  var fs = require("fs");\
-  fs.writeFileSync("calls.profile", outStr);\
-} else if (typeof window !== "undefined") {\
-  document.open("data:text/plain;charset=utf-8," + outStr);\
-}';  
+  showProfile();\
+}';
 
   Node.prototype.instrumentCalls = T.makePass("instrumentCalls", "instrumentCallNode");
 
