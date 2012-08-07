@@ -9,10 +9,11 @@
   } else {
     util = this.util;
     T = this.estransform;
-    load("./js_frontend.js");
-    jsFrontend = this.jsFrontend;
     load("./types.js");
     Types = this.Types;
+    load("./scope.js");
+    load("./js_frontend.js");
+    jsFrontend = this.jsFrontend;
     load("./compiler.js");
     LLJS = this.compiler;
   }
