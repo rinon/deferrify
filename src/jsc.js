@@ -54,7 +54,6 @@
       ["E",           "only-parse",   false, "Only parse"],
       ["A",           "emit-ast",     false, "Do not generate JS, emit AST"],
       ["P",           "pretty-print", false, "Pretty-print AST instead of emitting JSON (with -A)"],
-      ["z",           "lazy-minimum", "", "Enable lazy function parsing with minimum length (defaults to all functions if enabled)"],
       ["b",           "bare",         false, "Do not wrap in a module"],
       ["l",           "load-instead", false, "Emit load('memory') instead of require('memory')"],
       ["W",           "warn",         true,  "Print warnings (enabled by default)"],
@@ -65,10 +64,11 @@
       ["h",           "help",         false, "Print this message"],
       ["w",           "nowarn",       false, "Inhibit all warning messages"],
       ["m",           "minify",       false, "Do rudimentary minification"],
-      ["c",           "call-graph",   false, "Use call graph information for lazy parsing thresholding"],
-      ["i",           "profile-calls", false, "Add instrumentation code to profile which functions get called"],
-      ["p",           "read-profile", "",    "Read profile information from filename"],
-      ["no-loc",      null,       false, "Do not include location information in the AST (less useful debug info)"]
+      ["Z",           "lazy-minimum", "", "Enable lazy function parsing with minimum length (defaults to all functions if enabled)"],
+      ["Zc",          "call-graph",   false, "Use call graph information for lazy parsing thresholding"],
+      ["Zi",          "profile-calls", false, "Add instrumentation code to profile which functions get called"],
+      ["Zp",          "read-profile", "",    "Read profile information from filename"],
+      ["",            "no-loc",       false, "Do not include location information in the AST (less useful debug info)"]
     ]);
 
     var p = optparser.parse(argv);
