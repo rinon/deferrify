@@ -500,14 +500,7 @@
     if (o.laziness.numVars > 0) {
       var decl = new VariableDeclaration("var", [new VariableDeclarator(
         new Identifier('_$l'),
-        new CallExpression(
-          new MemberExpression(
-            new Identifier("Object"),
-            new Identifier("create"),
-            false, "."
-          ),
-          [new Identifier("null")]
-        )
+        new ArrayExpression([])
       )]);
       this.body.unshift(decl);
     }
@@ -569,14 +562,7 @@
     if (childOpts.laziness.numVars > 0) {
       var decl = new VariableDeclaration("var", [new VariableDeclarator(
         new Identifier('_$l'),
-        new CallExpression(
-          new MemberExpression(
-            new Identifier("Object"),
-            new Identifier("create"),
-            false, "."
-          ),
-          [new Identifier("null")]
-        )
+        new ArrayExpression([])
       )]);
       if (this.body instanceof BlockStatement) {
         this.body.body.unshift(decl);
