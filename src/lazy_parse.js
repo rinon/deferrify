@@ -52,7 +52,6 @@
   var minReplaceLength;
   var callGraphAvailable;
   var callProfiling;
-  var numReplacements = 0;
 
   exports.initialize = function (o, cmdLineOpts) {
     logger = o.logger;
@@ -95,71 +94,53 @@
   function Laziness() {
     this.functionStrings = Object.create(null);
     this.functionMap = Object.create(null);
-    this.numVars = 0;
+    this.newVars = [];
     this.isClosure = false;
     this.needsStub = false;
     this.needsStubF = false;
   }
 
   function stubConstructor(scope) {
-    var thisId = scope.freshTemp();
     var strId = scope.freshTemp();
     var funcId = scope.freshTemp();
+    var tempId = scope.freshTemp();
     var iterId = scope.freshTemp();
-    var argsId = scope.freshTemp();
-
-    var lazyMeta = new Identifier("_$l");
-
     return new FunctionDeclaration(
       new Identifier("stub"),
-      [thisId, strId, funcId, argsId],
+      [strId, funcId],
       new BlockStatement([
         new IfStatement(
           new BinaryExpression(
             "===",
             new UnaryExpression(
               "typeof",
-              new MemberExpression(
-                lazyMeta,
-                strId,
-                true
-              )
+              strId
             ),
             new Literal("string")
           ),
           new BlockStatement([
-            new ExpressionStatement(
-              new AssignmentExpression(
-                new MemberExpression(
-                  lazyMeta,
-                  funcId,
-                  true
-                ), "=",
-                new CallExpression(
-                  new Identifier("eval"),
-                  [new MemberExpression(
-                    lazyMeta,
-                    strId,
-                    true
-                  )]
+            new VariableDeclaration(
+              "var", [
+                new VariableDeclarator(
+                  tempId,
+                  new CallExpression(
+                    new Identifier("eval"),
+                    [strId]
+                  )
                 )
-              )
+              ]
             ),
             new ExpressionStatement(
               new AssignmentExpression(
                 new MemberExpression(
-                  new MemberExpression(
-                    lazyMeta,
-                    funcId,
-                    true
-                  ),
+                  tempId,
                   new Identifier("prototype"),
                   false,
                   "."
                 ),
                 "=",
                 new MemberExpression(
-                  thisId,
+                  funcId,
                   new Identifier("prototype"),
                   false,
                   "."
@@ -179,20 +160,12 @@
                 new ExpressionStatement(
                   new AssignmentExpression(
                     new MemberExpression(
-                      new MemberExpression(
-                        lazyMeta,
-                        funcId,
-                        true
-                      ),
+                      tempId,
                       iterId,
                       true
                     ), "=",
                     new MemberExpression(
-                      new MemberExpression(
-                        lazyMeta,
-                        funcId,
-                        true
-                      ),
+                      funcId,
                       iterId,
                       true
                     )
@@ -200,44 +173,13 @@
                 )
               ])
             ),
-            new ExpressionStatement(
-              new AssignmentExpression(
-                new MemberExpression(
-                  lazyMeta,
-                  strId,
-                  true
-                ), "=", new Identifier("null")
-              )
-            ),
             new ReturnStatement(
-              new CallExpression(
-                new MemberExpression(
-                  new MemberExpression(
-                    lazyMeta,
-                    funcId,
-                    true
-                  ),
-                  new Identifier("apply"),
-                  false, "."
-                ),
-                [thisId, argsId]
-              )
+              tempId
             )
           ])
         ),
         new ReturnStatement(
-          new CallExpression(
-            new MemberExpression(
-              new MemberExpression(
-                lazyMeta,
-                funcId,
-                true
-              ),
-              new Identifier("apply"),
-              false, "."
-            ),
-            [thisId, argsId]
-          )
+          funcId
         )
       ])
     );
@@ -245,29 +187,21 @@
 
 
   function stubFConstructor(scope) {
-    var thisId = scope.freshTemp();
     var strId = scope.freshTemp();
     var funcId = scope.freshTemp();
-    var argsId = scope.freshTemp();
     var paramsId = scope.freshTemp();
-
-    var lazyMeta = new Identifier("_$l");
+    var tempId = scope.freshTemp();
     var iterId = scope.freshTemp();
-
     return new FunctionDeclaration(
       new Identifier("stubF"),
-      [thisId, strId, funcId, argsId, paramsId],
+      [strId, funcId, paramsId],
       new BlockStatement([
         new IfStatement(
           new BinaryExpression(
             "===",
             new UnaryExpression(
               "typeof",
-              new MemberExpression(
-                lazyMeta,
-                strId,
-                true
-              )
+              strId
             ),
             new Literal("string")
           ),
@@ -279,48 +213,38 @@
                   new Identifier("push"),
                   false, "."
                 ),
-                [new MemberExpression(
-                  lazyMeta,
-                  strId,
-                  true
-                )]
+                [strId]
               )
             ),
-            new ExpressionStatement(
-              new AssignmentExpression(
-                new MemberExpression(
-                  lazyMeta,
-                  funcId,
-                  true
-                ), "=",
-                new CallExpression(
-                  new MemberExpression(
-                    new Identifier("Function"),
-                    new Identifier("apply"),
-                    false, "."
-                  ),
-                  [
-                    thisId,
-                    paramsId
-                  ]
+            new VariableDeclaration(
+              "var", [
+                new VariableDeclarator(
+                  tempId,
+                  new CallExpression(
+                    new MemberExpression(
+                      new Identifier("Function"),
+                      new Identifier("apply"),
+                      false, "."
+                    ),
+                    [
+                      new Identifier("this"),
+                      paramsId
+                    ]
+                  )
                 )
-              )
+              ]
             ),
             new ExpressionStatement(
               new AssignmentExpression(
                 new MemberExpression(
-                  new MemberExpression(
-                    lazyMeta,
-                    funcId,
-                    true
-                  ),
+                  tempId,
                   new Identifier("prototype"),
                   false,
                   "."
                 ),
                 "=",
                 new MemberExpression(
-                  thisId,
+                  funcId,
                   new Identifier("prototype"),
                   false,
                   "."
@@ -340,20 +264,12 @@
                 new ExpressionStatement(
                   new AssignmentExpression(
                     new MemberExpression(
-                      new MemberExpression(
-                        lazyMeta,
-                        funcId,
-                        true
-                      ),
+                      tempId,
                       iterId,
                       true
                     ), "=",
                     new MemberExpression(
-                      new MemberExpression(
-                        lazyMeta,
-                        funcId,
-                        true
-                      ),
+                      funcId,
                       iterId,
                       true
                     )
@@ -361,65 +277,23 @@
                 )
               ])
             ),
-            new ExpressionStatement(
-              new AssignmentExpression(
-                new MemberExpression(
-                  lazyMeta,
-                  strId,
-                  true
-                ), "=", new Identifier("null")
-              )
-            ),
             new ReturnStatement(
-              new CallExpression(
-                new MemberExpression(
-                  new MemberExpression(
-                    lazyMeta,
-                    funcId,
-                    true
-                  ),
-                  new Identifier("apply"),
-                  false, "."
-                ),
-                [thisId, argsId]
-              )
+              tempId
             )
           ])
         ),
         new ReturnStatement(
-          new CallExpression(
-            new MemberExpression(
-              new MemberExpression(
-                lazyMeta,
-                funcId,
-                true
-              ),
-              new Identifier("apply"),
-              false, "."
-            ),
-            [thisId, argsId]
-          )
+          funcId
         )
       ])
     );
   }
         
 
-  function stub(id, str, memo, stubName, scope, params) {
-    var memoId = new MemberExpression(
-      new Identifier("_$l"),
-      new Literal(memo),
-      true
-    );
-    var strId = new MemberExpression(
-      new Identifier("_$l"),
-      new Literal(str),
-      true
-    );
+  function stub(id, strId, memoId, stubName, thisId, params) {
+    var tempId = new Identifier("t");
 
-    var tempId = scope.freshTemp();
-
-    var stubParams = [new ThisExpression(), new Literal(str), new Literal(memo), new Identifier("arguments")];
+    var stubParams = [strId, memoId];
 
     if (stubName === "stubF") {
       var paramArray = [];
@@ -429,17 +303,25 @@
       stubParams.push(new ArrayExpression(paramArray));
     }
 
+    if (!thisId) {
+      thisId = new Identifier("this");
+    }
+
     return new BlockStatement([
-      new VariableDeclaration(
-        "var", [
-        new VariableDeclarator(
-          tempId,
+      new ExpressionStatement(
+        new AssignmentExpression(
+          memoId, "=",
           new CallExpression(
             new Identifier(stubName),
             stubParams
           )
         )
-      ]),
+      ),
+      new ExpressionStatement(
+        new AssignmentExpression(
+          strId, "=", new Identifier("null")
+        )
+      ),
       new IfStatement(
         new BinaryExpression(
           "===",
@@ -453,7 +335,15 @@
         )
       ),
       new ReturnStatement(
-        tempId
+        new CallExpression(
+          new MemberExpression(
+            memoId,
+            new Identifier("apply"),
+            false,
+            "."
+          ),
+          [thisId, new Identifier("arguments")]
+        )
       )
     ]);
   }
@@ -475,16 +365,12 @@
 
     this.body = passOverList(this.body, 'lazyParsePass', o);
 
-    var strDeclaration;
+    var strId, strDeclaration;
     for (var name in o.laziness.functionStrings) {
-      strDeclaration = new ExpressionStatement(
-        new AssignmentExpression(
-          new MemberExpression(
-            new Identifier("_$l"),
-            new Literal(name),
-            true
-          ), "=",
-          new Literal(o.laziness.functionStrings[name]))
+      strId = new Identifier(name, "variable");
+      strDeclaration = new VariableDeclaration(
+        "var",
+        [new VariableDeclarator(strId, new Literal(o.laziness.functionStrings[name]), undefined)]
       );
       this.body.unshift(strDeclaration);
     }
@@ -497,18 +383,8 @@
     }
 
 
-    if (o.laziness.numVars > 0) {
-      var decl = new VariableDeclaration("var", [new VariableDeclarator(
-        new Identifier('_$l'),
-        new CallExpression(
-          new MemberExpression(
-            new Identifier("Object"),
-            new Identifier("create"),
-            false, "."
-          ),
-          [new Identifier("null")]
-        )
-      )]);
+    if (o.laziness.newVars.length > 0) {
+      var decl = new VariableDeclaration("var", o.laziness.newVars);
       this.body.unshift(decl);
     }
 
@@ -526,16 +402,12 @@
                              // (as is the post-order traversal in
                              // callGraph)
 
-    var strDeclaration;
+    var strId, strDeclaration;
     for (var name in childOpts.laziness.functionStrings) {
-      strDeclaration = new ExpressionStatement(
-        new AssignmentExpression(
-          new MemberExpression(
-            new Identifier("_$l"),
-            new Literal(name),
-            true
-          ), "=",
-          new Literal(childOpts.laziness.functionStrings[name]))
+      strId = new Identifier(name, "variable");
+      strDeclaration = new VariableDeclaration(
+        "var",
+        [new VariableDeclarator(strId, new Literal(childOpts.laziness.functionStrings[name]), undefined)]
       );
       if (this.body instanceof BlockStatement) {
         this.body.body.unshift(strDeclaration);
@@ -566,18 +438,8 @@
       o.laziness.isClosure = true;
     }
 
-    if (childOpts.laziness.numVars > 0) {
-      var decl = new VariableDeclaration("var", [new VariableDeclarator(
-        new Identifier('_$l'),
-        new CallExpression(
-          new MemberExpression(
-            new Identifier("Object"),
-            new Identifier("create"),
-            false, "."
-          ),
-          [new Identifier("null")]
-        )
-      )]);
+    if (childOpts.laziness.newVars.length > 0) {
+      var decl = new VariableDeclaration("var", childOpts.laziness.newVars);
       if (this.body instanceof BlockStatement) {
         this.body.body.unshift(decl);
       } else {
@@ -598,32 +460,28 @@
           }
         }
 
-        numReplacements++;
-
-        var id = o.laziness.numVars++;
-        var memo = o.laziness.numVars++;
+        var id = o.scope.freshTemp();
+        var memo = o.scope.freshTemp();
         if (childOpts.laziness.isClosure) {
-          o.laziness.functionStrings[id] = '(' + functionString + ')';
-          this.body = stub(this.id, id, memo, "stub", o.scope);
+          o.laziness.functionStrings[id.name] = '(' + functionString + ')';
+          this.body = stub(this.id, id, memo, "stub");
           o.laziness.needsStub = true;
         } else {
           functionString = stringifyNode(this.body);
-          o.laziness.functionStrings[id] = functionString;
-          this.body = stub(this.id, id, memo, "stubF", o.scope, this.params);
+          o.laziness.functionStrings[id.name] = functionString;
+          this.body = stub(this.id, id, memo, "stubF", null, this.params);
           o.laziness.needsStubF = true;
         }
 
         o.laziness.functionMap[this.id.name] = {mangled: id.name, isClosure: childOpts.laziness.isClosure, params: this.params};
 
+        o.laziness.newVars.push(new VariableDeclarator(memo));
+
         return new BlockStatement([
           this,
           new ExpressionStatement(
             new AssignmentExpression(
-              new MemberExpression(
-                new Identifier("_$l"),
-                new Literal(memo),
-                true
-              ), "=", this.id
+              memo, "=", this.id
             )
           )
         ]);
@@ -665,7 +523,7 @@
       this.right.id = null;
       var functionString = stringifyNode(this.right);
       if (shouldLazify(this.right, functionString.length)) {
-        var id = o.laziness.numVars++;
+        var id = o.scope.freshTemp();
 
         var thisId = new Identifier("this");
         if (this.left instanceof MemberExpression &&
@@ -674,16 +532,14 @@
           thisId = this.left.object;
         }
 
-        numReplacements++;
-
-        var memo = o.laziness.numVars++;
+        var memo = o.scope.freshTemp();
         if (this.right.isClosure) {
-          o.laziness.functionStrings[id] = '(' + functionString + ')';
-          this.right.body = stub(this.left, id, memo, "stub", o.scope);
+          o.laziness.functionStrings[id.name] = '(' + functionString + ')';
+          this.right.body = stub(this.left, id, memo, "stub", thisId);
           o.laziness.needsStub = true;
         } else {
-          o.laziness.functionStrings[id] = stringifyNode(this.right.body);
-          this.right.body = stub(this.left, id, memo, "stubF", o.scope, this.right.params);
+          o.laziness.functionStrings[id.name] = stringifyNode(this.right.body);
+          this.right.body = stub(this.left, id, memo, "stubF", thisId, this.right.params);
           o.laziness.needsStubF = true;
         }
 
@@ -695,14 +551,12 @@
         }
         o.laziness.functionMap[funcName] = {mangled: id.name, isClosure: this.right.isClosure, params: this.right.params};
 
+        o.laziness.newVars.push(new VariableDeclarator(memo));
+
         return new SequenceExpression([
           this,
           new AssignmentExpression(
-            new MemberExpression(
-              new Identifier("_$l"),
-              new Literal(memo),
-              true
-            ), "=", this.left
+            memo, "=", this.left
           )
         ]);
       } else {
@@ -760,9 +614,5 @@
       return identifier;
     }
   }
-
-  exports.report = function() {
-    print("Number of lazy loads: " + numReplacements);
-  };
 
 }).call(this, typeof exports === "undefined" ? (lazyParse = {}) : exports);

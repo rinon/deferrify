@@ -81,7 +81,6 @@
     if (options["lazy-minimum"] !== "") {
       node.lazyParsePass(o);
     }
-    lazyParse.report();
 
     return T.flatten(node);
   }
