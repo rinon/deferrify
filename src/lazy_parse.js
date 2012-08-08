@@ -52,6 +52,7 @@
   var minReplaceLength;
   var callGraphAvailable;
   var callProfiling;
+  var numReplacements = 0;
 
   exports.initialize = function (o, cmdLineOpts) {
     logger = o.logger;
@@ -291,8 +292,6 @@
         
 
   function stub(id, strId, memoId, stubName, thisId, params) {
-    var tempId = new Identifier("t");
-
     var stubParams = [strId, memoId];
 
     if (stubName === "stubF") {
@@ -460,6 +459,8 @@
           }
         }
 
+        numReplacements++;
+
         var id = o.scope.freshTemp();
         var memo = o.scope.freshTemp();
         if (childOpts.laziness.isClosure) {
@@ -523,8 +524,6 @@
       this.right.id = null;
       var functionString = stringifyNode(this.right);
       if (shouldLazify(this.right, functionString.length)) {
-        var id = o.scope.freshTemp();
-
         var thisId = new Identifier("this");
         if (this.left instanceof MemberExpression &&
             (!thisId instanceof MemberExpression && thisId.property instanceof Identifier && thisId.property.name == "prototype")) {
@@ -532,6 +531,9 @@
           thisId = this.left.object;
         }
 
+        numReplacements++;
+
+        var id = o.scope.freshTemp();
         var memo = o.scope.freshTemp();
         if (this.right.isClosure) {
           o.laziness.functionStrings[id.name] = '(' + functionString + ')';
@@ -614,5 +616,9 @@
       return identifier;
     }
   }
+
+  exports.report = function() {
+    print("Number of lazy loads: " + numReplacements);
+  };
 
 }).call(this, typeof exports === "undefined" ? (lazyParse = {}) : exports);
