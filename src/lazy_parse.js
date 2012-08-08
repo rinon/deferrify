@@ -425,12 +425,8 @@
       }
     }
     if (childOpts.laziness.needsStubF) {
-      stubNode = stubFConstructor(o.scope);
-      if (this.body instanceof BlockStatement) {
-        this.body.body.unshift(stubNode);
-      } else {
-        this.body = new BlockStatement([stubNode, this.body]);
-      }
+      // Just propagate up and let program add it only once
+      o.laziness.needsStubF = true;
     }
 
     if (childOpts.laziness.isClosure) {
