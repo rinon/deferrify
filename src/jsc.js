@@ -63,7 +63,8 @@
       ["t",           "trace",        false, "Trace compiler execution"],
       ["o",           "output",       "",    "Output file name"],
       ["h",           "help",         false, "Print this message"],
-      ["w",           "nowarn",       false, "Inhibit all warning messages"]
+      ["w",           "nowarn",       false, "Inhibit all warning messages"],
+      ["m",           "minify",       false, "Do rudimentary minification"]
     ]);
 
     var p = optparser.parse(argv);
@@ -132,6 +133,11 @@
 
       node = escodegen.attachComments(node, node.comments, node.tokens);
 
+      var outputFormat = {};
+      if (options["minify"]) {
+        outputFormat.compact = true;
+      }
+
       if (options["only-parse"]) {
         code = node;
       } else {
@@ -139,7 +145,7 @@
         if (options["emit-ast"]) {
           code = node;
         } else {
-          code = escodegen.generate(node, { base: "", indent: "  ", comment: true });
+          code = escodegen.generate(node, { base: "", indent: "  ", comment: true, format: outputFormat});
         }
       }
     } catch (e) {
