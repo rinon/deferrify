@@ -1,5 +1,5 @@
 (function (exports) {
-  var util, jsFrontend, lazyParse, T, Types, LLJS, callGraph;
+  var util, jsFrontend, lazyParse, T, Types, LLJS, callGraph, escodegen;
   if (typeof process !== "undefined") {
     util = require("./util.js");
     jsFrontend = require("./js_frontend.js");
@@ -8,6 +8,7 @@
     LLJS = require("./compiler.js");
     callGraph = require("./call_graph.js");
     lazyParse = require("./lazy_parse.js");
+    escodegen = require("./escodegen.js");
   } else {
     util = this.util;
     T = this.estransform;
@@ -22,6 +23,7 @@
     callGraph = this.callGraph;
     load("./lazy_parse.js");
     lazyParse = this.lazyParse;
+    escodegen = this.escodegen;
   }
 
   function warningOptions(options) {
@@ -80,8 +82,13 @@
 
     if (options["lazy-minimum"] !== "") {
       node.lazyParsePass(o);
+
+      if (options["split-strings"] !== "" && typeof process !== "undefined") {
+        require('fs').writeFileSync(options["split-strings"], escodegen.generate(new T.Program(lazyParse.getFunctionStrings()), { base: "", indent: "  ", comment: true}));
+      }
     }
     lazyParse.report();
+
 
     return T.flatten(node);
   }

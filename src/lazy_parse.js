@@ -1,11 +1,12 @@
 (function (exports) {
-  var util, T, escodegen, Types, uglify;
+  var util, T, escodegen, Types, uglify, esprima;
   if (typeof process !== "undefined") {
     util = require("./util.js");
     T = require("./estransform.js");
     escodegen = require("./escodegen.js");
     Types = require("./types.js");
     uglify = require("uglify-js");
+    esprima = require("./esprima.js");
 
     snarf = require('fs').readFileSync;
   } else {
@@ -14,6 +15,7 @@
     escodegen = this.escodegen;
     Types = this.Types;
     uglify = load("./uglify-js.js");
+    esprima = this.esprima;
   }
 
   /**
@@ -40,6 +42,7 @@
   const ArrayExpression = T.ArrayExpression;
   const ForInStatement = T.ForInStatement;
   const ThisExpression = T.ThisExpression;
+  const NewExpression = T.NewExpression;
   const Statement = T.Statement;
 
   /**
@@ -53,6 +56,10 @@
   var callGraphAvailable;
   var callProfiling;
   var numReplacements = 0;
+  var splitStrings = false;
+  var splitStringsFilename;
+  var useRequire = true;
+  var useStubF;
 
   exports.initialize = function (o, cmdLineOpts) {
     logger = o.logger;
@@ -68,8 +75,24 @@
       var profileStr = snarf(cmdLineOpts["read-profile"]);
       callProfiling = new Uint8Array(JSON.parse(profileStr));
     }
+
+    if (cmdLineOpts["split-strings"] !== "") {
+      splitStrings = [];
+      splitStringsFilename = cmdLineOpts["split-strings"];
+    }
+
+    if (cmdLineOpts["load-instead"]) {
+      useRequire = false;
+    }
+
+    useStubF = cmdLineOpts["new-function"];
   };
 
+  var functionStrings = Object.create(null);
+  var curVarId = 0;
+  function newVarId() {
+    return new Identifier("_l$" + curVarId++);
+  }
 
   function stringifyNode(node) {
     var s = escodegen.generate(node, {format: {indent: { style: '', base: 0}}});
@@ -93,7 +116,7 @@
   }
 
   function Laziness() {
-    this.functionStrings = Object.create(null);
+    //this.functionStrings = Object.create(null);
     this.functionMap = Object.create(null);
     this.newVars = [];
     this.isClosure = false;
@@ -308,6 +331,16 @@
 
     return new BlockStatement([
       new ExpressionStatement(
+        new CallExpression(
+          new Identifier("_l$sync"),
+          [new MemberExpression(
+            new Identifier("this"),
+            strId,
+            false, "."
+          )]
+        )
+      ),
+      new ExpressionStatement(
         new AssignmentExpression(
           memoId, "=",
           new CallExpression(
@@ -365,22 +398,62 @@
     this.body = passOverList(this.body, 'lazyParsePass', o);
 
     var strId, strDeclaration;
-    for (var name in o.laziness.functionStrings) {
-      strId = new Identifier(name, "variable");
-      strDeclaration = new VariableDeclaration(
-        "var",
-        [new VariableDeclarator(strId, new Literal(o.laziness.functionStrings[name]), undefined)]
-      );
-      this.body.unshift(strDeclaration);
+    // for (var name in o.laziness.functionStrings) {
+    //   strId = new Identifier(name, "variable");
+    //   strDeclaration = new VariableDeclaration(
+    //     "var",
+    //     [new VariableDeclarator(strId, new Literal(o.laziness.functionStrings[name]), undefined)]
+    //   );
+    //   this.body.unshift(strDeclaration);
+    // }
+
+    if (splitStrings === false) {
+      for (var name in functionStrings) {
+        var strId = new Identifier(name, "variable");
+        var strDeclaration = new VariableDeclaration(
+          "var",
+          [new VariableDeclarator(strId, new Literal(functionStrings[name]), undefined)]
+        );
+        this.body.unshift(strDeclaration);
+      }
+    } else {
+      var node = esprima.parse("\
+var _l$done = false;\
+var _l$Request = new XMLHttpRequest();\
+_l$Request.open('GET', '" + splitStringsFilename + "', true);\
+_l$Request.onreadystatechange = function () {\
+  if (_l$Request.readystate === 4 && ! _l$done) {\
+    eval(_l$Request.responseText);\
+    _l$done = true;\
+  }\
+};\
+_l$Request.send();\
+\
+function _l$sync(_) {\
+  if (typeof _ === 'undefined') {\
+    var _l$Request = new XMLHttpRequest();\
+    _l$Request.open('GET', '" + splitStringsFilename + "', false);\
+    _l$Request.send();\
+    if (! _l$done) {\
+      eval.call(this, _l$Request.responseText);\
+      _l$done = true;\
+    }\
+  }\
+}", {loc: false, jsInput: true});
+      this.body.unshift(node);
+
     }
 
     if (o.laziness.needsStub) {
       this.body.unshift(stubConstructor(o.scope));
     }
     if (o.laziness.needsStubF) {
-      this.body.unshift(stubFConstructor(o.scope));
+      if (splitStrings === false) {
+        this.body.unshift(stubFConstructor(o.scope));
+      } else {
+        splitStrings.push(stubFConstructor(o.scope));
+      }
     }
-
 
     if (o.laziness.newVars.length > 0) {
       var decl = new VariableDeclaration("var", o.laziness.newVars);
@@ -457,17 +530,17 @@
 
         numReplacements++;
 
-        var id = o.scope.freshTemp();
+        var id = newVarId();
         var memo = o.scope.freshTemp();
-        if (childOpts.laziness.isClosure) {
-          o.laziness.functionStrings[id.name] = '(' + functionString + ')';
-          this.body = stub(this.id, id, memo, "stub");
-          o.laziness.needsStub = true;
-        } else {
+        if (useStubF && !childOpts.laziness.isClosure) {
           functionString = stringifyNode(this.body);
-          o.laziness.functionStrings[id.name] = functionString;
+          functionStrings[id.name] = functionString;
           this.body = stub(this.id, id, memo, "stubF", null, this.params);
           o.laziness.needsStubF = true;
+        } else {
+          functionStrings[id.name] = '(' + functionString + ')';
+          this.body = stub(this.id, id, memo, "stub");
+          o.laziness.needsStub = true;
         }
 
         o.laziness.functionMap[this.id.name] = {mangled: id.name, isClosure: childOpts.laziness.isClosure, params: this.params};
@@ -529,16 +602,16 @@
 
         numReplacements++;
 
-        var id = o.scope.freshTemp();
+        var id = newVarId();
         var memo = o.scope.freshTemp();
-        if (this.right.isClosure) {
-          o.laziness.functionStrings[id.name] = '(' + functionString + ')';
-          this.right.body = stub(this.left, id, memo, "stub", thisId);
-          o.laziness.needsStub = true;
-        } else {
-          o.laziness.functionStrings[id.name] = stringifyNode(this.right.body);
+        if (useStubF && !this.right.isClosure) {
+          functionStrings[id.name] = stringifyNode(this.right.body);
           this.right.body = stub(this.left, id, memo, "stubF", thisId, this.right.params);
           o.laziness.needsStubF = true;
+        } else {
+          functionStrings[id.name] = '(' + functionString + ')';
+          this.right.body = stub(this.left, id, memo, "stub", thisId);
+          o.laziness.needsStub = true;
         }
 
         var funcName;
@@ -616,5 +689,22 @@
   exports.report = function() {
     print("Number of lazy loads: " + numReplacements);
   };
+
+  function getFunctionStrings() {
+    // Do not regen strings if they already are generated.
+    // We might have a single element (stubF) at this point
+    if (splitStrings !== false && splitStrings.length <= 1) {
+      for (var name in functionStrings) {
+        var strId = new Identifier(name, "variable");
+        var strDeclaration = new VariableDeclaration(
+          "var",
+          [new VariableDeclarator(strId, new Literal(functionStrings[name]), undefined)]
+        );
+        splitStrings.push(strDeclaration);
+      }
+    }
+    return splitStrings;
+  };
+  exports.getFunctionStrings = getFunctionStrings;
 
 }).call(this, typeof exports === "undefined" ? (lazyParse = {}) : exports);

@@ -65,6 +65,8 @@
       ["w",           "nowarn",       false, "Inhibit all warning messages"],
       ["m",           "minify",       false, "Do rudimentary minification"],
       ["Z",           "lazy-minimum", "", "Enable lazy function parsing with minimum length (defaults to all functions if enabled)"],
+      ["Zf",          "new-function", false, "Use new Function instead of eval when possible"],
+      ["Zs",          "split-strings","", "Split lazy function strings into a new file (implies building for browser)"],
       ["Zc",          "call-graph",   false, "Use call graph information for lazy parsing thresholding"],
       ["Zi",          "profile-calls", false, "Add instrumentation code to profile which functions get called"],
       ["Zp",          "read-profile", "",    "Read profile information from filename"],
