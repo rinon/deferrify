@@ -337,12 +337,6 @@
 
     var statements = [
       new ExpressionStatement(
-        new CallExpression(
-          new Identifier('console.log'),
-          [new Literal('lazy')]
-        )
-      ),
-      new ExpressionStatement(
         new AssignmentExpression(
           memoId, "=",
           new CallExpression(
@@ -460,7 +454,7 @@ _l$Request.onreadystatechange = function () {\
 _l$Request.send();\
 \
 function _l$sync(_) {\
-  if (typeof _ === 'undefined') {\
+  if (! _l$done) {\
     var _l$Request = new XMLHttpRequest();\
     _l$Request.open('GET', '" + splitStringsFilename + "', false);\
     _l$Request.send();\
