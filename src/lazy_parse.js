@@ -95,7 +95,7 @@
   }
 
   function stringifyNode(node) {
-    var s = escodegen.generate(node, {format: {indent: { style: '', base: 0}}});
+    var s = escodegen.generate(node, {format: {indent: { style: '', base: 0}, compact: true}});
     if (node instanceof BlockStatement) {
       return uglify('(function()' + s + ')')
         .replace(/^.*?\{/, '').replace(/\}\)$/, '');
@@ -116,7 +116,7 @@
   }
 
   function Laziness() {
-    //this.functionStrings = Object.create(null);
+    this.functionStrings = Object.create(null);
     this.functionMap = Object.create(null);
     this.newVars = [];
     this.isClosure = false;
@@ -314,6 +314,7 @@
   }
         
 
+  // now take id, strId, and memoId as strings, not Identifiers
   function stub(id, strId, memoId, stubName, thisId, params) {
     var stubParams = [strId, memoId];
 
@@ -329,15 +330,16 @@
       thisId = new Identifier("this");
     }
 
-    return new BlockStatement([
+    var fnString = "(function() {";
+    if (splitStrings !== false) {
+      fnString += "_l$sync(this." + strId + ");";
+    }
+
+    var statements = [
       new ExpressionStatement(
         new CallExpression(
-          new Identifier("_l$sync"),
-          [new MemberExpression(
-            new Identifier("this"),
-            strId,
-            false, "."
-          )]
+          new Identifier('console.log'),
+          [new Literal('lazy')]
         )
       ),
       new ExpressionStatement(
@@ -377,7 +379,35 @@
           [thisId, new Identifier("arguments")]
         )
       )
-    ]);
+    ];
+
+    if (splitStrings !== false) {
+      statements.unshift(new ExpressionStatement(
+        new CallExpression(
+          new Identifier("_l$sync"),
+          [new MemberExpression(
+            new Identifier("this"),
+            strId,
+            false, "."
+          )]
+        )
+      ));
+    }
+
+
+    return new BlockStatement(statements);
+
+
+
+//     fnString += "\
+// " + memoId + " = stub(" + strId + ", " + memoId + ");\
+// " + strId + " = null;\
+// if (" + id + " === this)\
+//   " + id + " = " + memoId + ";\
+// return " + memoId + ".apply(" + memoId + ", arguments);\
+// })";
+
+//     return esprima.parse(fnString).body[0].expression.body;
   }
 
   function passOverList(list, passFunction, o) {
@@ -408,11 +438,11 @@
     // }
 
     if (splitStrings === false) {
-      for (var name in functionStrings) {
+      for (var name in o.laziness.functionStrings) {
         var strId = new Identifier(name, "variable");
         var strDeclaration = new VariableDeclaration(
           "var",
-          [new VariableDeclarator(strId, new Literal(functionStrings[name]), undefined)]
+          [new VariableDeclarator(strId, new Literal(o.laziness.functionStrings[name]), undefined)]
         );
         this.body.unshift(strDeclaration);
       }
@@ -422,8 +452,8 @@ var _l$done = false;\
 var _l$Request = new XMLHttpRequest();\
 _l$Request.open('GET', '" + splitStringsFilename + "', true);\
 _l$Request.onreadystatechange = function () {\
-  if (_l$Request.readystate === 4 && ! _l$done) {\
-    eval(_l$Request.responseText);\
+  if (_l$Request.readyState === 4 && ! _l$done) {\
+    eval.call(this, _l$Request.responseText);\
     _l$done = true;\
   }\
 };\
@@ -442,6 +472,7 @@ function _l$sync(_) {\
 }", {loc: false, jsInput: true});
       this.body.unshift(node);
 
+      functionStrings = o.laziness.functionStrings;
     }
 
     if (o.laziness.needsStub) {
@@ -473,6 +504,7 @@ function _l$sync(_) {\
     this.idNumber = curId++; // NOTE: this is AFTER parsing children
                              // (as is the post-order traversal in
                              // callGraph)
+
 
     var strId, strDeclaration;
     for (var name in childOpts.laziness.functionStrings) {
@@ -534,27 +566,23 @@ function _l$sync(_) {\
         var memo = o.scope.freshTemp();
         if (useStubF && !childOpts.laziness.isClosure) {
           functionString = stringifyNode(this.body);
-          functionStrings[id.name] = functionString;
+          o.laziness.functionStrings[id.name] = functionString;
           this.body = stub(this.id, id, memo, "stubF", null, this.params);
           o.laziness.needsStubF = true;
         } else {
-          functionStrings[id.name] = '(' + functionString + ')';
+          o.laziness.functionStrings[id.name] = '(' + functionString + ')';
           this.body = stub(this.id, id, memo, "stub");
           o.laziness.needsStub = true;
         }
 
         o.laziness.functionMap[this.id.name] = {mangled: id.name, isClosure: childOpts.laziness.isClosure, params: this.params};
 
-        o.laziness.newVars.push(new VariableDeclarator(memo));
+        o.laziness.newVars.push(new VariableDeclarator(
+          memo,
+          this.id
+        ));
 
-        return new BlockStatement([
-          this,
-          new ExpressionStatement(
-            new AssignmentExpression(
-              memo, "=", this.id
-            )
-          )
-        ]);
+        return this;
       } else {
         return this;
       }
@@ -605,11 +633,11 @@ function _l$sync(_) {\
         var id = newVarId();
         var memo = o.scope.freshTemp();
         if (useStubF && !this.right.isClosure) {
-          functionStrings[id.name] = stringifyNode(this.right.body);
+          o.laziness.functionStrings[id.name] = stringifyNode(this.right.body);
           this.right.body = stub(this.left, id, memo, "stubF", thisId, this.right.params);
           o.laziness.needsStubF = true;
         } else {
-          functionStrings[id.name] = '(' + functionString + ')';
+          o.laziness.functionStrings[id.name] = '(' + functionString + ')';
           this.right.body = stub(this.left, id, memo, "stub", thisId);
           o.laziness.needsStub = true;
         }
