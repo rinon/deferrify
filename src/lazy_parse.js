@@ -192,10 +192,10 @@
             new ReturnStatement(
               tempId
             )
-          ])
-        ),
-        new ReturnStatement(
-          funcId
+          ]),
+          new ReturnStatement(
+            strId
+          )
         )
       ])
     );
@@ -296,19 +296,22 @@
             new ReturnStatement(
               tempId
             )
-          ])
-        ),
-        new ReturnStatement(
-          funcId
+          ]),
+          new ReturnStatement(
+            strId
+          )
         )
       ])
     );
   }
         
 
-  // now take id, strId, and memoId as strings, not Identifiers
-  function stub(id, strId, memoId, stubName, thisId, params) {
-    var stubParams = [strId, memoId];
+  function stub(id, strId, stubName, thisId, params) {
+    var stubParams = [strId, new MemberExpression(
+      new Identifier("arguments"),
+      new Identifier("callee"),
+      false, "."
+    )];
 
     if (stubName === "stubF") {
       var paramArray = [];
@@ -325,16 +328,11 @@
     var statements = [
       new ExpressionStatement(
         new AssignmentExpression(
-          memoId, "=",
+          strId, "=",
           new CallExpression(
             new Identifier(stubName),
             stubParams
           )
-        )
-      ),
-      new ExpressionStatement(
-        new AssignmentExpression(
-          strId, "=", new Identifier("null")
         )
       ),
       new IfStatement(
@@ -349,14 +347,14 @@
         ),
         new ExpressionStatement(
           new AssignmentExpression(
-            id, "=", memoId
+            id, "=", strId
           )
         )
       ),
       new ReturnStatement(
         new CallExpression(
           new MemberExpression(
-            memoId,
+            strId,
             new Identifier("apply"),
             false,
             "."
@@ -548,24 +546,23 @@ function _l$sync(_) {\
         numReplacements++;
 
         var id = newVarId();
-        var memo = o.scope.freshTemp();
         if (useStubF && !childOpts.laziness.isClosure) {
           functionString = stringifyNode(this.body);
           o.laziness.functionStrings[id.name] = functionString;
-          this.body = stub(this.id, id, memo, "stubF", null, this.params);
+          this.body = stub(this.id, id, "stubF", null, this.params);
           o.laziness.needsStubF = true;
         } else {
           o.laziness.functionStrings[id.name] = '(' + functionString + ')';
-          this.body = stub(this.id, id, memo, "stub");
+          this.body = stub(this.id, id, "stub");
           o.laziness.needsStub = true;
         }
 
         o.laziness.functionMap[this.id.name] = {mangled: id.name, isClosure: childOpts.laziness.isClosure, params: this.params};
 
-        o.laziness.newVars.push(new VariableDeclarator(
-          memo,
-          this.id
-        ));
+        // o.laziness.newVars.push(new VariableDeclarator(
+        //   memo,
+        //   this.id
+        // ));
 
         return this;
       } else {
@@ -616,14 +613,13 @@ function _l$sync(_) {\
         numReplacements++;
 
         var id = newVarId();
-        var memo = o.scope.freshTemp();
         if (useStubF && !this.right.isClosure) {
           o.laziness.functionStrings[id.name] = stringifyNode(this.right.body);
-          this.right.body = stub(this.left, id, memo, "stubF", thisId, this.right.params);
+          this.right.body = stub(this.left, id, "stubF", thisId, this.right.params);
           o.laziness.needsStubF = true;
         } else {
           o.laziness.functionStrings[id.name] = '(' + functionString + ')';
-          this.right.body = stub(this.left, id, memo, "stub", thisId);
+          this.right.body = stub(this.left, id, "stub", thisId);
           o.laziness.needsStub = true;
         }
 
@@ -635,14 +631,15 @@ function _l$sync(_) {\
         }
         o.laziness.functionMap[funcName] = {mangled: id.name, isClosure: this.right.isClosure, params: this.right.params};
 
-        o.laziness.newVars.push(new VariableDeclarator(memo));
+        // o.laziness.newVars.push(new VariableDeclarator(memo));
 
-        return new SequenceExpression([
-          this,
-          new AssignmentExpression(
-            memo, "=", this.left
-          )
-        ]);
+        return this;
+        // return new SequenceExpression([
+        //   this,
+        //   new AssignmentExpression(
+        //     memo, "=", this.left
+        //   )
+        // ]);
       } else {
         this.right.id = oldId;
       }
