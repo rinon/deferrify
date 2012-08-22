@@ -354,7 +354,11 @@
         new BinaryExpression(
           "===",
           id,
-          new ThisExpression()
+          new MemberExpression(
+            new Identifier("arguments"),
+            new Identifier("callee"),
+            false, "."
+          )
         ),
         new ExpressionStatement(
           new AssignmentExpression(
