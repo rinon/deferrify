@@ -1,11 +1,10 @@
 (function (exports) {
-  var util, T, escodegen, Types, uglify, esprima;
+  var util, T, escodegen, Types, esprima;
   if (typeof process !== "undefined") {
     util = require("./util.js");
     T = require("./estransform.js");
     escodegen = require("./escodegen.js");
     Types = require("./types.js");
-    uglify = require("uglify-js");
     esprima = require("./esprima.js");
 
     snarf = require('fs').readFileSync;
@@ -14,7 +13,6 @@
     T = estransform;
     escodegen = this.escodegen;
     Types = this.Types;
-    uglify = load("./uglify-js.js");
     esprima = this.esprima;
   }
 
@@ -96,13 +94,7 @@
 
   function stringifyNode(node) {
     var s = escodegen.generate(node, {format: {indent: { style: '', base: 0}, compact: true}});
-    if (node instanceof BlockStatement) {
-      return uglify('(function()' + s + ')')
-        .replace(/^.*?\{/, '').replace(/\}\)$/, '');
-    } else {
-      return uglify('(' + s + ')')
-        .replace(/^\(/, '').replace(/\)$/, '');
-    }
+    return s;
   }
 
   /**
