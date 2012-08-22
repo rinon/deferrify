@@ -322,11 +322,6 @@
       thisId = new Identifier("this");
     }
 
-    var fnString = "(function() {";
-    if (splitStrings !== false) {
-      fnString += "_l$sync(this." + strId + ");";
-    }
-
     var statements = [
       new ExpressionStatement(
         new AssignmentExpression(
