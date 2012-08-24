@@ -86,10 +86,14 @@
     useStubF = cmdLineOpts["new-function"];
   };
 
-  var functionStrings = Object.create(null);
-  var curVarId = 0;
-  function newVarId() {
-    return new Identifier("_l$" + curVarId++);
+  var functionStrings;
+  function newVarId(id) {
+    //return new Identifier("_l$" + curVarId++);
+    return new MemberExpression(
+      new Identifier("_l$"),
+      new Literal(id),
+      true
+    );
   }
 
   function stringifyNode(node) {
@@ -108,12 +112,14 @@
   }
 
   function Laziness() {
-    this.functionStrings = Object.create(null);
+    // this.functionStrings = Object.create(null);
+    this.functionStrings = [];
     this.functionMap = Object.create(null);
     this.newVars = [];
     this.isClosure = false;
     this.needsStub = false;
     this.needsStubF = false;
+    this.curVarId = 0;
   }
 
   function stubConstructor(scope) {
@@ -411,21 +417,24 @@
     this.body = passOverList(this.body, 'lazyParsePass', o);
 
     var strId, strDeclaration;
-    // for (var name in o.laziness.functionStrings) {
-    //   strId = new Identifier(name, "variable");
-    //   strDeclaration = new VariableDeclaration(
-    //     "var",
-    //     [new VariableDeclarator(strId, new Literal(o.laziness.functionStrings[name]), undefined)]
-    //   );
-    //   this.body.unshift(strDeclaration);
-    // }
 
     if (splitStrings === false) {
-      for (var name in o.laziness.functionStrings) {
-        var strId = new Identifier(name, "variable");
+      // for (var name in o.laziness.functionStrings) {
+      //   var strId = new Identifier(name, "variable");
+      //   var strDeclaration = new VariableDeclaration(
+      //     "var",
+      //     [new VariableDeclarator(strId, new Literal(o.laziness.functionStrings[name]), undefined)]
+      //   );
+      //   this.body.unshift(strDeclaration);
+      // }
+
+      if (o.laziness.functionStrings.length > 0) {
+        var decls = o.laziness.functionStrings.map(function(str) {
+          return new Literal(str);
+        });
         var strDeclaration = new VariableDeclaration(
           "var",
-          [new VariableDeclarator(strId, new Literal(o.laziness.functionStrings[name]), undefined)]
+          [new VariableDeclarator(new Identifier("_l$"), new ArrayExpression(decls))]
         );
         this.body.unshift(strDeclaration);
       }
@@ -490,11 +499,13 @@ function _l$sync(_) {\
 
 
     var strId, strDeclaration;
-    for (var name in childOpts.laziness.functionStrings) {
-      strId = new Identifier(name, "variable");
-      strDeclaration = new VariableDeclaration(
+    if (childOpts.laziness.functionStrings.length > 0) {
+      var decls = childOpts.laziness.functionStrings.map(function(str) {
+        return new Literal(str);
+      });
+      var strDeclaration = new VariableDeclaration(
         "var",
-        [new VariableDeclarator(strId, new Literal(childOpts.laziness.functionStrings[name]), undefined)]
+        [new VariableDeclarator(new Identifier("_l$"), new ArrayExpression(decls))]
       );
       if (this.body instanceof BlockStatement) {
         this.body.body.unshift(strDeclaration);
@@ -502,6 +513,18 @@ function _l$sync(_) {\
         this.body = new BlockStatement([strDeclaration, this.body]);
       }
     }
+    // for (var name in childOpts.laziness.functionStrings) {
+    //   strId = new Identifier(name, "variable");
+    //   strDeclaration = new VariableDeclaration(
+    //     "var",
+    //     [new VariableDeclarator(strId, new Literal(childOpts.laziness.functionStrings[name]), undefined)]
+    //   );
+    //   if (this.body instanceof BlockStatement) {
+    //     this.body.body.unshift(strDeclaration);
+    //   } else {
+    //     this.body = new BlockStatement([strDeclaration, this.body]);
+    //   }
+    // }
 
     var stubNode;
     if (childOpts.laziness.needsStub) {
@@ -545,14 +568,16 @@ function _l$sync(_) {\
 
         numReplacements++;
 
-        var id = newVarId();
+        var id = newVarId(o.laziness.curVarId++);
         if (useStubF && !childOpts.laziness.isClosure) {
           functionString = stringifyNode(this.body);
-          o.laziness.functionStrings[id.name] = functionString;
+          // o.laziness.functionStrings[id.name] = functionString;
+          o.laziness.functionStrings.push(functionString);
           this.body = stub(this.id, id, "stubF", null, this.params);
           o.laziness.needsStubF = true;
         } else {
-          o.laziness.functionStrings[id.name] = '(' + functionString + ')';
+          // o.laziness.functionStrings[id.name] = '(' + functionString + ')';
+          o.laziness.functionStrings.push('(' + functionString + ')');
           this.body = stub(this.id, id, "stub");
           o.laziness.needsStub = true;
         }
@@ -612,13 +637,15 @@ function _l$sync(_) {\
 
         numReplacements++;
 
-        var id = newVarId();
+        var id = newVarId(o.laziness.curVarId++);
         if (useStubF && !this.right.isClosure) {
-          o.laziness.functionStrings[id.name] = stringifyNode(this.right.body);
+          // o.laziness.functionStrings[id.name] = stringifyNode(this.right.body);
+          o.laziness.functionStrings.push(stringifyNode(this.right.body));
           this.right.body = stub(this.left, id, "stubF", thisId, this.right.params);
           o.laziness.needsStubF = true;
         } else {
-          o.laziness.functionStrings[id.name] = '(' + functionString + ')';
+          // o.laziness.functionStrings[id.name] = '(' + functionString + ')';
+          o.laziness.functionStrings.push('(' + functionString + ')');
           this.right.body = stub(this.left, id, "stub", thisId);
           o.laziness.needsStub = true;
         }
@@ -704,14 +731,23 @@ function _l$sync(_) {\
     // Do not regen strings if they already are generated.
     // We might have a single element (stubF) at this point
     if (splitStrings !== false && splitStrings.length <= 1) {
-      for (var name in functionStrings) {
-        var strId = new Identifier(name, "variable");
-        var strDeclaration = new VariableDeclaration(
-          "var",
-          [new VariableDeclarator(strId, new Literal(functionStrings[name]), undefined)]
-        );
-        splitStrings.push(strDeclaration);
-      }
+      var decls = functionStrings.map(function(str) {
+        return new Literal(str);
+      });
+      var strDeclaration = new VariableDeclaration(
+        "var",
+        [new VariableDeclarator(new Identifier("_l$"), new ArrayExpression(decls))]
+      );
+      splitStrings.push(strDeclaration);
+
+      // for (var name in functionStrings) {
+      //   var strId = new Identifier(name, "variable");
+      //   var strDeclaration = new VariableDeclaration(
+      //     "var",
+      //     [new VariableDeclarator(strId, new Literal(functionStrings[name]), undefined)]
+      //   );
+      //   splitStrings.push(strDeclaration);
+      // }
     }
     return splitStrings;
   };
