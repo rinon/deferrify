@@ -332,14 +332,18 @@
     }
 
     var statements = [
-      new ExpressionStatement(
-        new AssignmentExpression(
-          strId, "=",
-          new CallExpression(
-            new Identifier(stubName),
-            stubParams
+      new VariableDeclaration(
+        "var",
+        [new VariableDeclarator(
+          new Identifier("_"),
+          new AssignmentExpression(
+            strId, "=",
+            new CallExpression(
+              new Identifier(stubName),
+              stubParams
+            )
           )
-        )
+        )]
       ),
       new IfStatement(
         new BinaryExpression(
@@ -353,14 +357,14 @@
         ),
         new ExpressionStatement(
           new AssignmentExpression(
-            id, "=", strId
+            id, "=", new Identifier("_")
           )
         )
       ),
       new ReturnStatement(
         new CallExpression(
           new MemberExpression(
-            strId,
+            new Identifier("_"),
             new Identifier("apply"),
             false,
             "."
