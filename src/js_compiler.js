@@ -522,9 +522,9 @@
             };
 
     //LLJS.initialize(o);
-    jsFrontend.initialize(o);
+    jsFrontend.initialize(o, options);
     lazyParse.initialize(o, options);
-    callGraph.initialize(o);
+    callGraph.initialize(o, options);
 
     // Lift into constructors.
     node = T.lift(node);

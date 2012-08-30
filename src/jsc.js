@@ -70,7 +70,8 @@
       ["Zc",          "call-graph",   false, "Use call graph information for lazy parsing thresholding"],
       ["Zi",          "profile-calls", false, "Add instrumentation code to profile which functions get called"],
       ["Zp",          "read-profile", "",    "Read profile information from filename"],
-      ["",            "no-loc",       false, "Do not include location information in the AST (less useful debug info)"]
+      ["",            "no-loc",       false, "Do not include location information in the AST (less useful debug info)"],
+      ["",            "min-len",      "", "Minimum length function to touch (either to insert profiling or for deferring)"]
     ]);
 
     var p = optparser.parse(argv);

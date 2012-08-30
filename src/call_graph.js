@@ -4,10 +4,12 @@
     var util = require("./util.js");
     var T = require("./estransform.js");
     var Types = require("./types.js");
+    var escodegen = require("./escodegen.js");
   } else {
     var util = this.util;
     var T = estransform;
     var Types = this.Types;
+    var escodegen = this.escodegen;
   }
 
   /**
@@ -44,9 +46,12 @@
   const assert = util.assert;
 
   var logger;
+  var minLength = 0;
 
-  exports.initialize = function (o) {
+  exports.initialize = function (o, cmdLineOpts) {
     logger = o.logger;
+
+    minLength = cmdLineOpts["min-len"];
   };
 
   function passOverList(list, passFunction, o) {
@@ -349,6 +354,11 @@
    * Call instrumentation pass
    */
 
+  function stringifyNode(node) {
+    var s = escodegen.generate(node, {format: {indent: { style: '', base: 0}, compact: true}});
+    return s;
+  }
+
   var id = 0;
   var globalArrayId = new Identifier("__called");
   function instrumentationCode() {
@@ -413,11 +423,13 @@ if (typeof process != "undefined") {\
 
   FunctionExpression.prototype.instrumentCallNode = 
   FunctionDeclaration.prototype.instrumentCallNode = function (o) {
-    var instrumentation = instrumentationCode();
-    if (this.body instanceof BlockStatement) {
-      this.body.body.unshift(instrumentation);
-    } else {
-      this.body = new BlockStatement([instrumentation, this.body]);
+    if (stringifyNode(this).length >= minLength) {
+      var instrumentation = instrumentationCode();
+      if (this.body instanceof BlockStatement) {
+        this.body.body.unshift(instrumentation);
+      } else {
+        this.body = new BlockStatement([instrumentation, this.body]);
+      }
     }
 
     return this;

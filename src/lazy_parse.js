@@ -106,7 +106,7 @@
    */
 
   function shouldLazify(functionNode, length) {
-    return (length > minReplaceLength &&
+    return (length >= minReplaceLength &&
             (!callGraphAvailable || !functionNode.called) &&
             (typeof callProfiling === "undefined" || !callProfiling[functionNode.idNumber]));
   }
