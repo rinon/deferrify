@@ -5,7 +5,7 @@
     T = require("./estransform.js");
     escodegen = require("./escodegen.js");
     Types = require("./types.js");
-    esprima = require("./esprima.js");
+    esprima = require("../lib/esprima.js");
 
     snarf = require('fs').readFileSync;
   } else {

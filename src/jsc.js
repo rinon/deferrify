@@ -18,7 +18,7 @@
 
   if (mode === NODE_JS) {
     util = require("./util.js");
-    esprima = require("./esprima.js");
+    esprima = require("../lib/esprima.js");
     escodegen = require("./escodegen.js");
     estransform = require("./estransform.js");
     compiler = require("./js_compiler.js");
@@ -28,7 +28,7 @@
     print = console.log;
     quit = process.exit;
   } else if (mode === JS_SHELL) {
-    load("./esprima.js");
+    load("../lib/esprima.js");
     load("./escodegen.js");
     load("./estransform.js");
     load("./util.js");

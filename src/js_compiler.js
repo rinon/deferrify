@@ -418,7 +418,6 @@
 
     o = extend(o);
     scope = new Frame(scope, "Function " + (this.id ? this.id.name : "anonymous"));
-    scope.returnType = ty.returnType;
     o.scope = this.frame = scope;
 
     if (o.thisTy) {
@@ -432,7 +431,7 @@
     var variable;
     for (var i = 0, j = params.length; i < j; i++) {
       logger.push(params[i]);
-      variable = new Variable(params[i].name, ty.paramTypes[i]);
+      variable = new Variable(params[i].name);
       scope.addVariable(variable);
       parameters.push(variable);
       logger.pop();
