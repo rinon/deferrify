@@ -138,10 +138,14 @@
     try {
       // var node = esprima.parse(source, { loc: true, comment: true, range: true, tokens: true, jsInput: true });
 
-      // node = escodegen.attachComments(node, node.comments, node.tokens);
+      var node;
+      if (options["no-loc"]) {
+        node = esprima.parse(source, { loc: false, jsInput: true });
+      } else {
+        node = esprima.parse(source, { loc: true, comment: true, range: true, tokens: true, jsInput: true });
 
-      var node = esprima.parse(source, { loc: !options["no-loc"], jsInput: true });
-
+        node = escodegen.attachComments(node, node.comments, node.tokens);
+      }
 
       var outputFormat = {};
       if (options["minify"]) {
