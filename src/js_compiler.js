@@ -555,7 +555,8 @@
       node.lazyParsePass(o);
 
       if (options["split-strings"] !== "" && typeof process !== "undefined") {
-        require('fs').writeFileSync(options["split-strings"], escodegen.generate(new T.Program(lazyParse.getFunctionStrings()), { base: "", indent: "  ", comment: true}));
+        //require('fs').writeFileSync(options["split-strings"], escodegen.generate(new T.Program(lazyParse.getFunctionStrings()), { base: "", indent: "  ", comment: true}));
+        require('fs').writeFileSync(options["split-strings"], lazyParse.getFunctionStrings());
       }
     }
     lazyParse.report();

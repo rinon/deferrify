@@ -95,7 +95,7 @@
   }
 
   function clone(obj) {
-    var o = {};
+    var o = Object.create(null);
     for (var key in obj) {
       o[key] = obj[key];
     }
