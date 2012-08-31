@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<meta name="viewport" content="width=1024, user-scalable=no">
+
+	<title>Lazy Javascript Loading</title>
+	
+	<!-- Required stylesheet -->
+	<link rel="stylesheet" href="deck/core/deck.core.css">
+	
+	<!-- Extension CSS files go here. Remove or add as needed. -->
+	<link rel="stylesheet" href="deck/extensions/goto/deck.goto.css">
+	<link rel="stylesheet" href="deck/extensions/menu/deck.menu.css">
+	<link rel="stylesheet" href="deck/extensions/navigation/deck.navigation.css">
+	<link rel="stylesheet" href="deck/extensions/status/deck.status.css">
+	<link rel="stylesheet" href="deck/extensions/hash/deck.hash.css">
+	<link rel="stylesheet" href="deck/extensions/scale/deck.scale.css">
+  <link rel="stylesheet" href="deck/extensions/codemirror/deck.codemirror.css">
+  <link rel="stylesheet" href="deck/extensions/codemirror/themes/vibrant-ink.css">
+  <link rel="stylesheet" href="deck/extensions/codemirror/themes/default.css">
+
+	<!-- Style theme. More available in /themes/style/ or create your own. -->
+	<link rel="stylesheet" href="rinon.css">
+	
+	<!-- Transition theme. More available in /themes/transition/ or create your own. -->
+	<link rel="stylesheet" href="deck/themes/transition/fade.css">
+	
+  <link href="http://fonts.googleapis.com/css?family=Oregano:400italic" rel="stylesheet" type="text/css">
+
+	<!-- Required Modernizr file -->
+	<script src="deck/modernizr.custom.js"></script>
+</head>
+<body class="deck-container">
+
+<!-- Begin slides. Just make elements with a class of slide. -->
+
+<section class="slide">
+	<h1 class="title">Lazy Javascript Loading</h1>
+	<subtitle><div class="postit">Defer ALL the functions!</div></subtitle>
+	<author>Stephen Crane</author>
+</section>
+
+<section class="slide">
+	<h2>Background</h2>
+
+  <div class="vcenter">
+    <h3 class="slide big">Downloading JS is slow!</h3>
+    <h3 class="slide big">Parsing is expensive too!</h3>
+  </div>
+</section>
+
+<section class="slide">
+	<h2>Deferred Loading to the Rescue</h2>
+
+  <div class="contents">
+    <ul>
+      <li class="slide">Include only what you need to load the page</li>
+      <li class="slide">
+        Many ways to defer JS <span class="slide">&ndash; for example:
+          <div class="code-wrap">
+            <div name="code" class="code" mode="javascript" theme="vibrant-ink" style="display: none;">var script = document.createElement('script');
+script.type = 'text/javascript';
+script.async = true;
+script.src = 'script.js';
+var existing = document.getElementsByTagName('script')[0];
+s.parentNode.insertBefore(script, existing);</div>
+          </div>
+          <div class="note">Modified version of Google Analytics loader</div>
+        </span>
+      </li>
+      <li class="slide">Requires developers to split their code manually</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Deferred Parsing</h2>
+
+  <div class="contents">
+    <ul>
+      <li class="slide">
+        Load function as a string instead of code <span class="slide">(or even in a comment)</span>
+      </li>
+      <li class="slide">
+        JS engine can parse a string or comment faster than code
+      </li>
+      <li class="slide">Challenges:
+        <ul>
+          <li>Load a function from a string representation</li>
+          <li>Only perform this load once</li>
+          <li>Patch the stub function with the real code</li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Deferred Parsing &ndash; example</h2>
+
+  <div class="contents">
+    <div class="slide">
+      <div class="code-wrap">
+        <div name="code2" class="code" mode="javascript" theme="vibrant-ink" style="display: none;">function foo() {
+  console.log('Hello, world!');
+}
+
+foo();</div>
+      </div>
+
+      <div class="slide">
+        <div class="arrow"></div>
+        <div class="code-wrap">
+          <div name="code2" class="code" mode="javascript" theme="vibrant-ink" style="display: none;">var fooStr = "function() {console.log('Hello, world!');}";
+
+function foo() {
+  foo = loadFunction(fooStr);
+  foo();
+}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Loading strings &rarr; functions</h2>
+  <h3>Oh noes! eval()!</h3>
+
+  <div class="contents">
+    <div class="code-wrap">
+      <div name="code3" class="code" mode="javascript" theme="vibrant-ink" style="display: none;">function loadFunction(functionStr, stubFunction) {
+  if (typeof functionStr === 'string') {
+    var loadedFunction = eval(functionStr);
+
+    loadedFunction.prototype = stubFunction.prototype;
+    for (var prop in stubFunction) {
+      loadedFunction[prop] = stubFunction[prop];
+    }
+    return loadedFunction;
+  } else {
+    return stubFunction;
+  }
+}</div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Patching the stub function</h2>
+  <h3>Trickier than it sounds</h3>
+
+  <div class="contents">
+    <div class="code-wrap">
+      <div name="code3" class="code" mode="javascript" theme="vibrant-ink" style="display: none;">var cache = {
+  foo: "function() {console.log('Hello, world!');}"
+};
+
+function foo() {
+  var temp = cache['foo'] = loadFunction(cache['foo'], arguments.callee);
+  if (foo === arguments.callee)
+    foo = temp;
+  return temp.apply(this, arguments);
+}</div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Automatic Splitting</h2>
+  <h3>Can we automate the process of splitting code into &ldquo;now&rdquo; and &ldquo;later&rdquo;?</h3>
+
+  <div class="contents">
+    <h3 class="black">Two approaches:</h3>
+    <ul>
+      <li class="slide">Static call graph</li>
+      <li class="slide">Call profiling</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Call Profiling</h2>
+
+  <div class="contents">
+    <ul>
+      <li class="slide">
+        Instrument code
+      </li>
+      <li class="slide">
+        Run instrumented code, stopping when page is loaded
+      </li>
+      <li class="slide">
+        Recompile using call profile, deferring all functions which were not called
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Deferrify</h2>
+  <h3>Esprima + Escodegen + LLJS + Special Sauce&trade;</h3>
+
+  <div class="contents">
+    <ul>
+      <li>
+        Source-to-source compiler built on top of Esprima and Escodegen.
+      </li>
+      <li>
+        Fully automated defered parsing and/or loading, using call graph or profiling information.
+      </li>
+      <li>
+        Available at <a href="http://github.com/rinon/deferrify" target="_blank">http://github.com/rinon/deferrify</a>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Performance</h2>
+  <h3>Pretty Graphs!</h3>
+</section>
+
+<section class="slide">
+  <h2>Performance</h2>
+  <h3>% Difference in Parse Time</h3>
+
+  <div class="contents">
+
+    <img src="graphs/parse_times.png" style="height: 670px;"/>
+  </div>
+</section>
+<!-- End slides. -->
+
+
+<!-- Begin extension snippets. Add or remove as needed. -->
+
+<!-- deck.navigation snippet -->
+<a href="#" class="deck-prev-link" title="Previous">&#8592;</a>
+<a href="#" class="deck-next-link" title="Next">&#8594;</a>
+
+<!-- deck.status snippet -->
+<p class="deck-status">
+	<span class="deck-status-current"></span>
+	/
+	<span class="deck-status-total"></span>
+</p>
+
+<!-- deck.goto snippet -->
+<form action="." method="get" class="goto-form">
+	<label for="goto-slide">Go to slide:</label>
+	<input type="text" name="slidenum" id="goto-slide" list="goto-datalist">
+	<datalist id="goto-datalist"></datalist>
+	<input type="submit" value="Go">
+</form>
+
+<!-- deck.hash snippet -->
+<a href="." title="Permalink to this slide" class="deck-permalink">#</a>
+
+<!-- End extension snippets. -->
+
+
+<!-- Required JS files. -->
+<script src="deck/jquery-1.7.2.min.js"></script>
+<script src="deck/core/deck.core.js"></script>
+
+<!-- Extension JS files. Add or remove as needed. -->
+<script src="deck/extensions/hash/deck.hash.js"></script>
+<script src="deck/extensions/menu/deck.menu.js"></script>
+<script src="deck/extensions/goto/deck.goto.js"></script>
+<script src="deck/extensions/status/deck.status.js"></script>
+<script src="deck/extensions/navigation/deck.navigation.js"></script>
+<script src="deck/extensions/scale/deck.scale.js"></script>
+<script src="deck/extensions/zoom/deck.zoom.js"></script>
+
+<!-- Base codemiror code -->
+<script src="deck/extensions/codemirror/codemirror.js"></script>
+
+<!-- Syntax highlighting Modes -->
+
+<!-- javascript -->
+<script src="deck/extensions/codemirror/mode/javascript/javascript.js"></script>
+
+<!-- Plugin code -->
+<script src="deck/extensions/codemirror/deck.codemirror.js"></script>
+
+<!-- Initialize the deck. You can put this in an external file if desired. -->
+<script>
+	$(function() {
+		$.deck('.slide');
+	});
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+             "gravity_combined.js": {"average_ms":   9.60, "stddev_ms":   0.57},
+              "tetris_combined.js": {"average_ms":   1.68, "stddev_ms":   0.47},
+                           "ga.js": {"average_ms":   1.22, "stddev_ms":   0.41},
+             "twitter_combined.js": {"average_ms":   8.18, "stddev_ms":   0.38},
+                   "jquery.min.js": {"average_ms":   2.16, "stddev_ms":   0.37},
+              "zimbra_combined.js": {"average_ms":  48.10, "stddev_ms":   0.88},
+                "jsgb_combined.js": {"average_ms":   3.70, "stddev_ms":   0.46},
+           "280slides_combined.js": {"average_ms":   1.26, "stddev_ms":   0.44},
+                           "bb.js": {"average_ms": 232.98, "stddev_ms":   2.88},
+                         "dojo.js": {"average_ms":   3.08, "stddev_ms":   0.27},
+                  "v8_combined.js": {"average_ms":   7.64, "stddev_ms":   0.48},
+            "processing_twitch.js": {"average_ms":   0.86, "stddev_ms":   0.35},
+               "gmail_combined.js": {"average_ms":  40.96, "stddev_ms":   0.75},
+           "effectgames_galaxy.js": {"average_ms":   5.94, "stddev_ms":   0.31},
+           "ball_pool_combined.js": {"average_ms":   6.16, "stddev_ms":   0.37},
+                      "yui-min.js": {"average_ms":   0.66, "stddev_ms":   0.47},
+                     "MochiKit.js": {"average_ms":   6.36, "stddev_ms":   0.48},
+               "pipio_combined.js": {"average_ms":  35.04, "stddev_ms":   2.89},
+           "sunspider_combined.js": {"average_ms":   4.12, "stddev_ms":   0.32}
+}

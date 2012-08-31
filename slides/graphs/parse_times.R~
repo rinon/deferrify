@@ -1,0 +1,5 @@
+library("ggplot2")
+library("rjson")
+
+baseline_file = "baseline_2012-08-29.json"
+baseline <- fromJSON(paste(readLines(baseline_file), collapse=""))
