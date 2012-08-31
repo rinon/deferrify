@@ -1,8 +1,11 @@
 * Need data:
-** % unused code on top 10 web sites (http://queue.acm.org/detail.cfm?id=1466450)
+** DONE % unused code on top 10 web sites (http://queue.acm.org/detail.cfm?id=1466450)
+   CLOSED: [2012-08-30 Thu 23:33]
 *** load times for these as well
-** Load times for BB (maybe another game?)
+** TODO Load times for BB (maybe another game?)
 *** with and without network latency
-** parsemark
-** Load times for jquery microbenchmark
-** sunspider/kraken
+** DONE parsemark
+   CLOSED: [2012-08-30 Thu 23:33]
+** TODO Load times for jquery microbenchmark
+** TODO sunspider/kraken
+* TODO Interactive demo
