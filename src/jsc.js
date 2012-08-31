@@ -35,7 +35,10 @@
     load("./js_compiler.js");
 
     argv = this.arguments;
+  } else {
+    print = console.log;
   }
+
 
   if (mode !== NODE_JS) {
     util = this.util;
@@ -197,4 +200,4 @@
     cli();
   }
 
-}).call(this, typeof exports === "undefined" ? (LSC = {}) : exports);
+}).call(this, typeof exports === "undefined" ? (jsc = {}) : exports);

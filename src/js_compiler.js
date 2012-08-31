@@ -1,6 +1,19 @@
 (function (exports) {
-  var util, jsFrontend, lazyParse, T, S, Types, LLJS, callGraph, escodegen;
+  const NODE_JS = 1;
+  const JS_SHELL = 2;
+  const BROWSER = 3;
+
+  var mode;
   if (typeof process !== "undefined") {
+    mode = NODE_JS;
+  } else if (typeof snarf !== "undefined") {
+    mode = JS_SHELL;
+  } else {
+    mode = BROWSER;
+  }
+
+  var util, jsFrontend, lazyParse, T, S, Types, LLJS, callGraph, escodegen;
+  if (mode === NODE_JS) {
     util = require("./util.js");
     jsFrontend = require("./js_frontend.js");
     T = require("./estransform.js");
@@ -10,20 +23,23 @@
     callGraph = require("./call_graph.js");
     lazyParse = require("./lazy_parse.js");
     escodegen = require("./escodegen.js");
-  } else {
+  } else if (mode === JS_SHELL) {
+    load("./types.js");
+    load("./scope.js");
+    load("./js_frontend.js");
+    load("./compiler.js");
+    load("./call_graph.js");
+    load("./lazy_parse.js");
+  }
+
+  if (mode !== NODE_JS) {
+    Types = this.Types;
     util = this.util;
     T = this.estransform;
-    load("./types.js");
-    Types = this.Types;
-    load("./scope.js");
-    S = this.S;
-    load("./js_frontend.js");
+    S = this.scope;
     jsFrontend = this.jsFrontend;
-    load("./compiler.js");
     LLJS = this.compiler;
-    load("./call_graph.js");
     callGraph = this.callGraph;
-    load("./lazy_parse.js");
     lazyParse = this.lazyParse;
     escodegen = this.escodegen;
   }

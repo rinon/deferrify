@@ -10,7 +10,7 @@
     snarf = require('fs').readFileSync;
   } else {
     util = this.util;
-    T = estransform;
+    T = this.estransform;
     escodegen = this.escodegen;
     Types = this.Types;
     esprima = this.esprima;
