@@ -67,13 +67,13 @@
   <div class="contents">
     <ul>
       <li class="slide">
-        Load function as a string instead of code <span class="slide">(or even in a comment)</span>
-      </li>
-      <li class="slide">
-        Insert stub in place of original function
+        Store function as a string instead of code <span class="slide">(or even in a comment)</span>
       </li>
       <li class="slide">
         JS engine can parse a string or comment faster than code
+      </li>
+      <li class="slide">
+        Insert stub in place of original function
       </li>
       <li class="slide">Challenges:
         <ul>
@@ -125,7 +125,7 @@ function foo() {
     }
     return loadedFunction;
   } else {
-    return stubFunction;
+    return functionStr;
   }
 }</div>
   </div>
@@ -196,7 +196,7 @@ s.parentNode.insertBefore(script, existing);</div>
         Instrument code
       </li>
       <li class="slide">
-        Run instrumented code, stopping when page is loaded
+        <a href="profile_demo/google.html" target="_blank">Run</a> instrumented code, stopping when page is loaded
       </li>
       <li class="slide">
         Recompile using call profile, deferring all functions which were not called
@@ -218,7 +218,7 @@ s.parentNode.insertBefore(script, existing);</div>
         Fully automated defered parsing and/or loading, using call graph or profiling information.
       </li>
       <li>
-        Available at <a href="http://github.com/rinon/deferrify" target="_blank">http://github.com/rinon/deferrify</a>
+        Available at <a href="http://deferrify.com" target="_blank">http://deferrify.com</a>
       </li>
     </ul>
   </div>
