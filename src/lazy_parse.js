@@ -740,7 +740,7 @@ _l$sync(true);", {loc: false, jsInput: true});
   };
 
   exports.report = function() {
-    print("Number of lazy loads: " + numReplacements);
+    print("Number of deferred loads: " + numReplacements);
   };
 
   function getFunctionStrings() {
