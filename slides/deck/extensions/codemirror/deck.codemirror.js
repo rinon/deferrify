@@ -4,7 +4,7 @@
   .deck-codemirror to your container and the classname 'codemirror-item'
   to any block that you wish to codemirrorify.
 */
-(function($, deck, undefined) {
+(function($, deck, undefined, jsc) {
 
   var $d = $(document);
   
@@ -40,6 +40,29 @@
       indentUnit : 1,
       indentWithTabs : false,
       runnable : false
+    },
+    jscOptions: {
+      'profile-calls': false,
+      'min-len': '0',
+      output: 'output.js',
+      'only-parse': false,
+      'emit-ast': false,
+      'pretty-print': false,
+      bare: false,
+      'load-instead': false,
+      warn: true,
+      null: false,
+      'simple-log': false,
+      trace: false,
+      help: false,
+      nowarn: true,
+      minify: false,
+      'lazy-minimum': '0',
+      'new-function': false,
+      'split-strings': '',
+      'call-graph': false,
+      'read-profile': '',
+      'no-loc': false
     }
   });
   
@@ -72,11 +95,16 @@
       });
     });
 
+
+
     // go through all code blocks
-    $.each(codeblocks, function(i, codeblock) {
+    $.each(codeblocks, codemirrorifyBlock);
+    function codemirrorifyBlock(i, codeblock) {
 
       // if codeblock hasn't been codemirrorified yet
       if (!$.data(codeblock, opts.data.codemirrorified)) {
+
+        $(codeblock).wrap('<div class="code-wrap"/>').wrap('<div class="code-box"/>');
 
         // initialize defaults.
         var codeblock = $(codeblock),
@@ -117,29 +145,67 @@
           e.stopPropagation();
         });
 
-        if (opts.codemirror.runnable || codeblock.attr("runnable")) {
-          // make the code runnable
-          var wrapper = editor.getWrapperElement(),
-              button  = $('<div>', {
-                "class" : "button",
-                text : "Run"
-              }).prependTo(wrapper),
-              clearButton  = $('<div>', {
-                "class" : "button clear",
-                text : "Clear"
-              }).prependTo(wrapper),
-              output = $('<div>', {
+        var wrapper = editor.getWrapperElement();
+
+        if (codeblock.attr("compilable") || opts.codemirror.runnable || codeblock.attr("runnable")) {
+          var output = $('<div>', {
                 "class" : opts.classes.codemirrorresult
               }).appendTo($(wrapper).parent());
+        }
 
-          clearButton.click(function(editor, output){
-            return function(event) {
-              output.html('');
+
+        function makeCompilable() {
+          var compileButton  = $('<span>', {
+                "class" : "button",
+                text : "Compile"
+              }).prependTo(wrapper);
+          //     newCodeBlock = $('<div id="test" class="code" mode="javascript" style="display:none;" runnable="true"/>').appendTo($(wrapper).parent());
+
+          // newCodeBlock.id = 'compiled' + codeblock.id;
+          // newCodeBlock = codemirrorifyBlock(0, newCodeBlock);
+
+          compileButton.click(function(event) {
+            output.html('');
+
+            // save the default logging behavior.
+            var real_console_log = console.log;
+
+            print = console.log = function() {
+              var messages = [];
+              // Convert all arguments to Strings (Objects will be JSONified).
+              for (var i = 0; i < arguments.length; i++) {
+                var value = arguments[i];
+                messages.push(typeof(value) == 'object' ? JSON.stringify(value) : String(value));
+              }
+              var msg = messages.join(" ");
+              if (output.html() !== "") {
+                output.append("<br />" + msg);
+              } else {
+                output.html(msg);
+              }
             };
-          }(editor, output));
+
+            var compiledCode = jsc.compile(codeblock.id, codeblock.id, codeblock.text(), opts.jscOptions);
+
+            // set the old logging behavior back.
+            console.log = real_console_log;
+
+            editor.setValue(compiledCode);
+
+            compileButton.remove();
+          });
+        }
+
+        function makeRunnable() {
+          // make the code runnable
+          var button  = $('<span>', {
+                "class" : "button",
+                text : "Run"
+              }).prependTo(wrapper);
 
           button.click(function(editor, output){
             return function(event) {
+              output.html('');
 
               // save the default logging behavior.
               var real_console_log = console.log;
@@ -214,36 +280,53 @@
               
               // set the old logging behavior back.
               console.log = real_console_log;
-            }
+            };
           }(editor, output));
         }
+
+        if (codeblock.attr("compilable")) {
+          // make the code compilable
+          makeRunnable();
+          makeCompilable();
+        }
+
+        if (opts.codemirror.runnable || codeblock.attr("runnable")) {
+          makeRunnable();
+        }
       }
-    });
+      return editor;
+    }
   };
 
   $d.bind('deck.init', function() {
-    
-    // codemirrorify current and next slide, since we're in the beginning.
-    codemirrorify($.deck('getSlide', 0));
-    codemirrorify($.deck('getSlide', 1));
-  });
-
-  $d.bind('deck.change', function(event, from, to) {
-    var $slides    = $[deck]('getSlides');
-    // codemirrorify previous slide
-    if (to > 0) {
-      codemirrorify($.deck('getSlide', to - 1));
-    } 
-    
-    // codemirrorify current slide
-    codemirrorify($.deck('getSlide', to));
-
-    // codemirrorify next slide
-    if (to+1 < $slides.length) {
-      codemirrorify($.deck('getSlide', to + 1));
+    var length = $[deck]('getSlides').length;
+    for (var i=0; i < length; i++) {
+      codemirrorify($.deck('getSlide', i));
     }
   });
-})(jQuery, 'deck', this);
+
+  // $d.bind('deck.init', function() {
+  //   // codemirrorify current and next slide, since we're in the beginning.
+  //   codemirrorify($.deck('getSlide', 0));
+  //   codemirrorify($.deck('getSlide', 1));
+  // });
+
+  // $d.bind('deck.change', function(event, from, to) {
+  //   var $slides    = $[deck]('getSlides');
+  //   // codemirrorify previous slide
+  //   if (to > 0) {
+  //     codemirrorify($.deck('getSlide', to - 1));
+  //   } 
+    
+  //   // codemirrorify current slide
+  //   codemirrorify($.deck('getSlide', to));
+
+  //   // codemirrorify next slide
+  //   if (to+1 < $slides.length) {
+  //     codemirrorify($.deck('getSlide', to + 1));
+  //   }
+  // });
+})(jQuery, 'deck', this, jsc);
 
 
 

@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="deck/extensions/codemirror/deck.codemirror.css">
   <link rel="stylesheet" href="deck/extensions/codemirror/themes/vibrant-ink.css">
   <link rel="stylesheet" href="deck/extensions/codemirror/themes/default.css">
+  <link rel="stylesheet" href="deck/extensions/pointer/deck.pointer.css">
 
 	<!-- Style theme. More available in /themes/style/ or create your own. -->
 	<link rel="stylesheet" href="rinon.css">
@@ -52,36 +53,24 @@
 </section>
 
 <section class="slide">
-	<h2>Deferred Loading to the Rescue</h2>
+	<h2>Page Loading</h2>
+  <h3>Functions called during loading</h3>
 
   <div class="contents">
-    <ul>
-      <li class="slide">Include only what you need to load the page</li>
-      <li class="slide">
-        Many ways to defer JS <span class="slide">&ndash; for example:
-          <div class="code-wrap">
-            <div name="code" class="code" mode="javascript" theme="vibrant-ink" style="display: none;">var script = document.createElement('script');
-script.type = 'text/javascript';
-script.async = true;
-script.src = 'script.js';
-var existing = document.getElementsByTagName('script')[0];
-s.parentNode.insertBefore(script, existing);</div>
-          </div>
-          <div class="note">Modified version of Google Analytics loader</div>
-        </span>
-      </li>
-      <li class="slide">Requires developers to split their code manually</li>
-    </ul>
+    <img src="graphs/function_usage.png" style="height: 16em;"/>
   </div>
 </section>
 
 <section class="slide">
-  <h2>Deferred Parsing</h2>
+  <h2>Deferred Parsing might help</h2>
 
   <div class="contents">
     <ul>
       <li class="slide">
         Load function as a string instead of code <span class="slide">(or even in a comment)</span>
+      </li>
+      <li class="slide">
+        Insert stub in place of original function
       </li>
       <li class="slide">
         JS engine can parse a string or comment faster than code
@@ -102,24 +91,20 @@ s.parentNode.insertBefore(script, existing);</div>
 
   <div class="contents">
     <div class="slide">
-      <div class="code-wrap">
-        <div name="code2" class="code" mode="javascript" theme="vibrant-ink" style="display: none;">function foo() {
+      <div name="code2" class="code" mode="javascript" theme="vibrant-ink" style="display: none;">function foo() {
   console.log('Hello, world!');
 }
 
 foo();</div>
-      </div>
-
+      
       <div class="slide">
         <div class="arrow"></div>
-        <div class="code-wrap">
-          <div name="code2" class="code" mode="javascript" theme="vibrant-ink" style="display: none;">var fooStr = "function() {console.log('Hello, world!');}";
+        <div name="code2" class="code" mode="javascript" theme="vibrant-ink" style="display: none;">var fooStr = "function() {console.log('Hello, world!');}";
 
 function foo() {
   foo = loadFunction(fooStr);
   foo();
 }</div>
-        </div>
       </div>
     </div>
   </div>
@@ -130,8 +115,7 @@ function foo() {
   <h3>Oh noes! eval()!</h3>
 
   <div class="contents">
-    <div class="code-wrap">
-      <div name="code3" class="code" mode="javascript" theme="vibrant-ink" style="display: none;">function loadFunction(functionStr, stubFunction) {
+    <div name="code3" class="code" mode="javascript" theme="vibrant-ink" style="display: none;">function loadFunction(functionStr, stubFunction) {
   if (typeof functionStr === 'string') {
     var loadedFunction = eval(functionStr);
 
@@ -144,7 +128,6 @@ function foo() {
     return stubFunction;
   }
 }</div>
-    </div>
   </div>
 </section>
 
@@ -153,18 +136,41 @@ function foo() {
   <h3>Trickier than it sounds</h3>
 
   <div class="contents">
-    <div class="code-wrap">
-      <div name="code3" class="code" mode="javascript" theme="vibrant-ink" style="display: none;">var cache = {
+    <div name="code3" class="code" mode="javascript" theme="vibrant-ink" style="display: none;">var cache = {
   foo: "function() {console.log('Hello, world!');}"
 };
 
 function foo() {
-  var temp = cache['foo'] = loadFunction(cache['foo'], arguments.callee);
+  var temp = cache['foo'] = loadFunction(
+    cache['foo'],
+    arguments.callee
+  );
   if (foo === arguments.callee)
     foo = temp;
   return temp.apply(this, arguments);
 }</div>
-    </div>
+  </div>
+</section>
+
+<section class="slide">
+	<h2>Deferred Loading to the Rescue</h2>
+
+  <div class="contents">
+    <ul>
+      <li class="slide">Include only what you need to load the page</li>
+      <li class="slide">
+        Many ways to defer JS <span class="slide">&ndash; for example:
+          <div name="code" class="code" mode="javascript" theme="vibrant-ink" style="display: none;">var script = document.createElement('script');
+script.type = 'text/javascript';
+script.async = true;
+script.src = 'script.js';
+var existing = document.getElementsByTagName('script')[0];
+s.parentNode.insertBefore(script, existing);</div>
+          <div class="note">Modified version of Google Analytics loader</div>
+        </span>
+      </li>
+      <li class="slide">Requires developers to split their code manually</li>
+    </ul>
   </div>
 </section>
 
@@ -219,17 +225,82 @@ function foo() {
 </section>
 
 <section class="slide">
+  <h2>Demo!</h2>
+
+  <div class="contents">
+    <div class="demo_selector small">
+      <select id="demo_mode">
+        <option value="">Defer Parsing</option>
+        <option value="split">Defer Parsing and Loading</option>
+      </select>
+    </div>
+
+    <div id="demo0" name="demo0" class="code" mode="javascript" style="display: none;" compilable="true">function foo() {
+  console.log('Hello, world!');
+}
+
+foo();</div>
+  </div>
+</section>
+
+<section class="slide">
   <h2>Performance</h2>
   <h3>Pretty Graphs!</h3>
 </section>
 
 <section class="slide">
   <h2>Performance</h2>
-  <h3>% Difference in Parse Time</h3>
+  <h3 class="nopad">Parse Time Speedups</h3>
 
   <div class="contents">
+    <img src="graphs/parse_times.png" style="height: 15em;"/>
+    <div class="note"><a href="https://developer.mozilla.org/en-US/docs/SpiderMonkey/Running_Parsemark" target="_blank">Parsemark</a> parsing benchmark</div>
+  </div>
+</section>
 
-    <img src="graphs/parse_times.png" style="height: 670px;"/>
+<section class="slide">
+  <h2>Performance</h2>
+  <h3 class="nopad"><a href="https://github.com/kripken/BananaBread" target="_blank">BananaBread</a> Load Time</h3>
+
+  <div class="contents">
+    <img src="graphs/bb_delayed.png" style="height: 15.5em;"/>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Performance</h2>
+  <h3 class="nopad"><a href="https://github.com/kripken/BananaBread" target="_blank">BananaBread</a> Load Time</h3>
+
+  <div class="contents">
+    <img src="graphs/bb_delayed_greyed.png" style="height: 15.5em;"/>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Thanks!</h2>
+
+  <div class="contents vcenter">
+    <h3 style="font-size: 1.3em; margin-bottom:1em;">Big thank you to Michael Bebenita, Alon Zakai, Dave Herman, and the entire research team</h3>
+    <h3 style="font-size: 3em"><a href="http://deferrify.com" target="_blank">deferrify.com</a></h3>
+    <h3 style="font-size: 1.5em">
+      Stephen Crane<br />
+      <a href="http://twitter.com/rinon" target="_blank">@rinon</a> &ndash;
+      <a href="http://github.com/rinon" target="_blank">github.com/rinon</a>
+    </h3>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Questions?</h2>
+
+  <div class="contents vcenter">
+    <h3 style="font-size: 1.3em; margin-bottom:1em;">Big thank you to Michael Bebenita, Alon Zakai, Dave Herman, and the entire research team</h3>
+    <h3 style="font-size: 3em"><a href="http://deferrify.com" target="_blank">deferrify.com</a></h3>
+    <h3 style="font-size: 1.5em">
+      Stephen Crane<br />
+      <a href="http://twitter.com/rinon" target="_blank">@rinon</a> &ndash;
+      <a href="http://github.com/rinon" target="_blank">github.com/rinon</a>
+    </h3>
   </div>
 </section>
 <!-- End slides. -->
@@ -266,6 +337,22 @@ function foo() {
 <script src="deck/jquery-1.7.2.min.js"></script>
 <script src="deck/core/deck.core.js"></script>
 
+<script src="compile.js"></script>
+
+<!-- Deferrify sources -->
+<script src="deferrify/estransform.js"></script>
+<script src="deferrify/types.js"></script>
+<script src="deferrify/util.js"></script>
+<script src="deferrify/scope.js"></script>
+<script src="deferrify/esprima.js"></script>
+<script src="deferrify/escodegen.js"></script>
+<script src="deferrify/compiler.js"></script>
+<script src="deferrify/call_graph.js"></script>
+<script src="deferrify/lazy_parse.js"></script>
+<script src="deferrify/js_frontend.js"></script>
+<script src="deferrify/js_compiler.js"></script>
+<script src="deferrify/jsc.js"></script>
+
 <!-- Extension JS files. Add or remove as needed. -->
 <script src="deck/extensions/hash/deck.hash.js"></script>
 <script src="deck/extensions/menu/deck.menu.js"></script>
@@ -274,6 +361,7 @@ function foo() {
 <script src="deck/extensions/navigation/deck.navigation.js"></script>
 <script src="deck/extensions/scale/deck.scale.js"></script>
 <script src="deck/extensions/zoom/deck.zoom.js"></script>
+<script src="deck/extensions/pointer/deck.pointer.js"></script>
 
 <!-- Base codemiror code -->
 <script src="deck/extensions/codemirror/codemirror.js"></script>
@@ -291,6 +379,17 @@ function foo() {
 	$(function() {
 		$.deck('.slide');
 	});
+
+  $(function() {
+    $('#demo_mode').change(function() {
+      var value = $(this).val();
+      if (value === 'split') {
+		    $.deck('getOptions').jscOptions['split-strings'] = 'split.js';
+      } else {
+		    $.deck('getOptions').jscOptions['split-strings'] = '';
+      }
+    });
+  });
 </script>
 </body>
 </html>
