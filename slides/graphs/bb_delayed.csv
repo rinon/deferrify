@@ -1,0 +1,8 @@
+variant, time, stddev
+bb_orig.nocc, 26001.75, 148.45
+bb_orig.cc_ws, 21982.15, 114.52
+bb_orig, 17367, 490.52
+bb_lazy_min, 24377.35, 560.49
+bb_lazy_reach_min, 24422.5, 508.26
+bb_lazy_profiled_min, 17918.6, 438.16
+bb_lazy_profiled_split_min, 14995.5, 156.64

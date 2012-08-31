@@ -1,0 +1,11 @@
+variant, time, stddev
+bb_orig, 5381.96, 61.42
+bb_orig.nocc, 6041.72, 70.92
+bb_orig.cc_ws, 5967.18, 77.75
+bb_orig.cc_simple, 5505.02, 82.27
+bb_orig.cc_advanced, 5458.64, 100.58
+bb_unchanged, 5476.08, 77.77
+bb_unchanged.ws, 6185.56, 94.47
+bb_unchanged.nocc, 6133.5, 96.75
+bb_min, 5518.32, 107.82
+bb_min.nocc, 6105.04, 101.89

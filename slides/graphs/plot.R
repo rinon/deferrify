@@ -21,8 +21,6 @@ bar_plot<- function(data, no_of_cols, ylabel, xlabel, colors, legend) {
 
   plot <- plot + scale_fill_manual(values = colors )
   
-  plot <- plot + scale_y_continuous(labels = percent)
-
   plot <- plot + ylab(ylabel) + xlab(xlabel)
   
   plot <- plot + theme_bw()
@@ -62,11 +60,14 @@ combined_err <- qt(0.975, df=49)*(processed$stddev_ms+baseline[matches, 'stddev_
 
 percent_difference <- (baseline[matches, 'average_ms'] - processed$average_ms)/baseline[matches, 'average_ms']
 
-parse_times<- data.frame(xcol=processed$L1, ycol=percent_difference, fcol=processed$L1, error=combined_err)
+parse_times <- data.frame(xcol=processed$L1, ycol=percent_difference, fcol=processed$L1, error=combined_err)
 
-bar_plot( parse_times, 1, "Parse Time Speedup", "", pldi_colors, FALSE)
+parse_time_plot <- bar_plot( parse_times, 1, "Parse Time Speedup", "", pldi_colors, FALSE)
+parse_time_plot <- parse_time_plot + geom_hline(aes(yintercept=mean(percent_difference)))
+parse_time_plot <- parse_time_plot + scale_y_continuous(labels = percent)
+
 ggsave("parse_times.pdf", height=5, width=5)
-ggsave("parse_times.png", height=5, width=5)
+ggsave("parse_times.png", height=4, width=4, dpi=300)
 ## ggsave("parse_times.svg")
 
 
@@ -80,6 +81,50 @@ function_percentage <- rbind(
 
 function_percentage_data <- data.frame(xcol=function_percentage$site, ycol=function_percentage$percent, fcol=function_percentage$used)
 
-bar_plot(function_percentage_data, 1, "Functions", "", c("#1f78b4", "#a6cee3"), TRUE)
-ggsave("function_usage.pdf", height=4, width=5)
-ggsave("function_usage.png", height=4, width=5)
+function_usage_plot = bar_plot(function_percentage_data, 1, "Functions", "", c("#1f78b4", "#a6cee3"), TRUE)
+function_usage_plot <- function_usage_plot + coord_flip()
+function_usage_plot <- function_usage_plot + scale_y_continuous(labels = percent)
+
+ggsave("function_usage.pdf", height=3, width=5)
+ggsave("function_usage.png", height=3, width=5, dpi=300)
+
+
+##### BananaBread #####
+
+bb <- read.csv("bb.csv", header=TRUE)
+runs <- 20
+bb$err <- qt(0.975, df=runs-1)*(bb$stddev/1000)/sqrt(runs)
+bb_data <- data.frame(xcol=bb$variant, ycol=bb$time/1000, fcol=bb$variant, error=bb$err)
+
+bb_plot <- bar_plot(bb_data, 1, "Load Time (s)", "", pldi_colors, FALSE)
+bb_plot <- bb_plot + coord_cartesian(ylim = c(5,6.5))
+ggsave("bb.pdf", height=4, width=5)
+ggsave("bb.png", height=4, width=5, dpi=300)
+
+bb_colors <-
+  c("#bdc9e1", "#74a9cf", "#0570b0", "#FDCC8A", "#FC8D59", "#E34A33", "#B30000")
+
+
+bb <- read.csv("bb_delayed.csv", header=TRUE)
+runs <- 20
+bb$err <- qt(0.975, df=runs-1)*(bb$stddev/1000)/sqrt(runs)
+bb_data <- data.frame(xcol=reorder(bb$variant, seq.int(length.out=length(bb$variant))), ycol=bb$time/1000, fcol=reorder(bb$variant, seq.int(length.out=length(bb$variant))), error=bb$err)
+
+bb_plot <- bar_plot(bb_data, 1, "Load Time (s)", "", bb_colors, FALSE)
+bb_plot <- bb_plot + coord_cartesian(ylim = c(10,30))
+ggsave("bb_delayed.pdf", height=4, width=5)
+ggsave("bb_delayed.png", height=4, width=5, dpi=300)
+
+bb_colors <-
+  c("#F1EEF6", "#F1EEF6", "#0570b0", "#FEF0D9", "#FEF0D9", "#FEF0D9", "#B30000")
+
+
+bb <- read.csv("bb_delayed.csv", header=TRUE)
+runs <- 20
+bb$err <- qt(0.975, df=runs-1)*(bb$stddev/1000)/sqrt(runs)
+bb_data <- data.frame(xcol=reorder(bb$variant, seq.int(length.out=length(bb$variant))), ycol=bb$time/1000, fcol=reorder(bb$variant, seq.int(length.out=length(bb$variant))), error=bb$err)
+
+bb_plot <- bar_plot(bb_data, 1, "Load Time (s)", "", bb_colors, FALSE)
+bb_plot <- bb_plot + coord_cartesian(ylim = c(10,30))
+ggsave("bb_delayed_greyed.pdf", height=4, width=5)
+ggsave("bb_delayed_greyed.png", height=4, width=5, dpi=300)
