@@ -86,7 +86,7 @@
     var files = p.rest;
 
     if (!files.length || options.help) {
-      print("jsc: [option(s)] file");
+      print("deferrify: [option(s)] file");
       print(optparser.usage());
       quit();
     }
