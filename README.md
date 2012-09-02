@@ -17,7 +17,7 @@ Unfortunately splitting code for deferred loading currently requires developers 
 Installation
 ------------
 
-Deferrify is written in pure JavaScript, and uses [Esprima](http://esprima.org/) and [Escodegen](Constellation/escodegen). This should allow Deferrify to run on any JavaScript engine (tested on JS shell, Firefox 14+, and Node.js.
+Deferrify is written in pure JavaScript, and uses [Esprima](http://esprima.org/) and [Escodegen](https://github.com/Constellation/escodegen). This should allow Deferrify to run on any JavaScript engine (tested on JS shell, Firefox 14+, and Node.js.
 
 The easiest way to get started with Deferrify is using [Node.js](http://nodejs.org/). If you already have Node installed, simply execute the deferrify script, found in the root of the source tree.
 
@@ -31,7 +31,7 @@ Deferrify can also run in the browser, although setting this up is a bit more co
 Examples
 --------
 
-For detailed usage instructions, check out
+For detailed usage instructions, check out:
 
     deferrify --help
 
